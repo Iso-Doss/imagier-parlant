@@ -28,9 +28,9 @@ trait ValidatesTranslations
             $known = Language::pluck('code')->all();
             foreach ((array) $this->input('translations', []) as $locale => $fields) {
                 if (! in_array($locale, $known, true)) {
-                    $validator->errors()->add("translations.$locale", "The language \"$locale\" does not exist.");
+                    $validator->errors()->add("translations.$locale", __('The language ":locale" does not exist.', ['locale' => $locale]));
                 } elseif (is_array($fields) && blank($fields['name'] ?? null)) {
-                    $validator->errors()->add("translations.$locale.name", 'The name is required.');
+                    $validator->errors()->add("translations.$locale.name", __('The name is required.'));
                 }
             }
         }];

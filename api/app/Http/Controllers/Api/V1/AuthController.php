@@ -21,11 +21,11 @@ class AuthController extends Controller
         $user = User::where('email', $data['email'])->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
-            throw ValidationException::withMessages(['email' => 'These credentials do not match our records.']);
+            throw ValidationException::withMessages(['email' => __('auth.failed')]);
         }
 
         if (! $user->is_admin) {
-            throw ValidationException::withMessages(['email' => 'This account cannot open the admin.']);
+            throw ValidationException::withMessages(['email' => __('This account cannot open the admin.')]);
         }
 
         $token = $user->createToken($data['device_name'] ?? 'admin')->plainTextToken;

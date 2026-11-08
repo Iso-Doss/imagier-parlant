@@ -34,7 +34,7 @@ class LanguageController extends Controller
     {
         $data = $request->validated();
         if (isset($data['code']) && $data['code'] !== $language->code && $this->hasContent($language)) {
-            abort(409, 'This language already has translations, so its code cannot change.');
+            abort(409, __('This language already has translations, so its code cannot change.'));
         }
 
         $language->update($data);
@@ -45,10 +45,10 @@ class LanguageController extends Controller
     public function destroy(Language $language)
     {
         if ($language->code === config('app.fallback_locale')) {
-            abort(409, 'The default language cannot be deleted.');
+            abort(409, __('The default language cannot be deleted.'));
         }
         if ($this->hasContent($language)) {
-            abort(409, 'This language has translations. Deactivate it instead, or delete its translations first.');
+            abort(409, __('This language has translations. Deactivate it instead, or delete its translations first.'));
         }
 
         $language->delete();

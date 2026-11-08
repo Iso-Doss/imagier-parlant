@@ -21,7 +21,7 @@ class SetContentLanguage
         $language = $active->get((string) $wanted) ?? $active->get(config('app.fallback_locale')) ?? $active->first();
 
         if ($request->filled('lang') && ! $active->has($request->query('lang'))) {
-            abort(422, "Unknown or inactive language: {$request->query('lang')}");
+            abort(422, __('Unknown or inactive language: :code', ['code' => (string) $request->query('lang')]));
         }
 
         if ($language) {

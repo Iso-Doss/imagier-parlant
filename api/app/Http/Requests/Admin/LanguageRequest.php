@@ -26,6 +26,6 @@ class LanguageRequest extends FormRequest
 
     public function messages(): array
     {
-        return ['answer_template.regex' => 'The answer template must contain :name, e.g. "C\'est :name".'];
+        return ['answer_template.regex' => __('The answer template must contain :placeholder, e.g. ":example".', ['placeholder' => ':name', 'example' => "C'est :name"])];
     }
 }

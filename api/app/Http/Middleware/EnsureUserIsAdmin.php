@@ -10,7 +10,7 @@ class EnsureUserIsAdmin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        abort_unless($request->user()?->is_admin, 403, 'This area is for administrators.');
+        abort_unless($request->user()?->is_admin, 403, __('This area is for administrators.'));
 
         return $next($request);
     }
