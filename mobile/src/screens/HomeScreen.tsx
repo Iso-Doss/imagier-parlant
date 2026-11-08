@@ -111,7 +111,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError }: 
                   <View style={[styles.check, { borderColor: t.edge, backgroundColor: on ? t.leaf : t.paper }]}>
                     {on && <Text style={{ color: "#fff", fontFamily: fonts.bodyBold, fontSize: 14 }}>✓</Text>}
                   </View>
-                  <Picture image={c.image_url} emoji={c.emoji} size={48} />
+                  <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={48} />
                   <Text style={[styles.catName, { color: t.ink }]} numberOfLines={2}>{c.name}</Text>
                   <Text style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{s.objects(c.items_count)}</Text>
                 </Pressable>

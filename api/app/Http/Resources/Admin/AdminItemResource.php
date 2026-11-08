@@ -3,16 +3,16 @@
 namespace App\Http\Resources\Admin;
 
 use App\Models\Item;
+use App\Services\MediaStore;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /** @mixin Item */
 class AdminItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $disk = Storage::disk('public');
+        $media = app(MediaStore::class);
 
         return [
             'id' => $this->id,
@@ -23,13 +23,15 @@ class AdminItemResource extends JsonResource
                 'emoji' => $this->category->emoji,
             ]),
             'emoji' => $this->emoji,
-            'image_url' => $this->image_path ? $disk->url($this->image_path) : null,
+            'image_url' => $this->imageUrl(),
+            'card_url' => $this->imageUrl('card'),
+            'thumb_url' => $this->imageUrl('thumb'),
             'sort_order' => $this->sort_order,
             'is_published' => $this->is_published,
             'translations' => $this->translations->mapWithKeys(fn ($t) => [$t->locale => [
                 'name' => $t->name,
                 'sentence' => $t->sentence,
-                'audio_url' => $t->audio_path ? $disk->url($t->audio_path) : null,
+                'audio_url' => $media->url($t->audio_path),
             ]]),
             'updated_at' => $this->updated_at,
         ];

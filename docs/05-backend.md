@@ -57,14 +57,22 @@ erDiagram
 | `items` | category_id, emoji, image_path, sort_order, is_published |
 | `item_translations` | item_id, locale, name, sentence, audio_path — unique (item_id, locale) |
 
-### 2.3 Évolutions prévues
+### 2.3 Ajouts de la phase 1
+
+| Table | Colonnes |
+|---|---|
+| `items` | `reference` (unique : « fruits-apple »), `image_variants` (JSON : full, card, thumb) |
+| `categories` | `image_variants` |
+| `items.emoji`, `categories.emoji` | collation `utf8mb4_bin` sous MySQL (sinon tous les emoji sont égaux) |
+
+### 2.4 Évolutions prévues
 
 **Catalogue (échelle 50 000)**
 
 | Table | Ajouts |
 |---|---|
 | `categories` | `parent_id` (nullable, index), `depth`, `items_count` (compteur dénormalisé) |
-| `items` | `reference` (unique, clé d'import), `status` (draft, review, published, archived), `difficulty` (1-3), `age_min`, `image_source`, `image_license`, `image_variants` (JSON : thumb, card, full), `updated_by` |
+| `items` | ~~`reference`~~ (fait), `status` (draft, review, published, archived), `difficulty` (1-3), `age_min`, `image_source`, `image_license`, `image_variants` (JSON : thumb, card, full), `updated_by` |
 | `item_translations` | `aliases` (JSON : variantes acceptées), `audio_source` (recorded, tts, none), `audio_duration_ms`, `phonetic_key` (index, pour la comparaison) |
 | `languages` | `stt_locale` (reconnaissance vocale), `tts_voice` (voix de synthèse choisie) |
 
@@ -228,7 +236,7 @@ sont chargés (avec leurs traductions) : une seule requête de 10 à 100 lignes.
 - Tests unitaires de `AnswerMatcher` à partir du fichier partagé `shared/answer-cases.json`.
 - Test d'import sur un CSV de 1 000 lignes avec erreurs volontaires.
 - Test de charge (k6) avant la mise en production : 200 séries/s avec p95 < 150 ms.
-- État actuel : 19 tests, tous verts.
+- État actuel : 21 tests, tous verts, sur SQLite et MySQL ; Larastan niveau 5 sans erreur.
 
 ## 10. Commandes utiles
 

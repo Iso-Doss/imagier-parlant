@@ -1,0 +1,116 @@
+# Intégration continue : vérifie l'API, l'administration et l'application mobile
+# à chaque push et à chaque pull request.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (${{ matrix.db }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        db: [sqlite, mysql]
+    defaults:
+      run:
+        working-directory: api
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: imagier_test
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot"
+          --health-interval=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: gd, exif, pdo_mysql, pdo_sqlite, redis, intl
+          coverage: none
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache/files
+          key: composer-${{ hashFiles('api/composer.lock') }}
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Préparer l'environnement
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Formatage (Pint)
+        if: matrix.db == 'sqlite'
+        run: vendor/bin/pint --test
+
+      - name: Analyse statique (Larastan)
+        if: matrix.db == 'sqlite'
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
+      - name: Failles connues (composer audit)
+        if: matrix.db == 'sqlite'
+        run: composer audit
+
+      - name: Tests
+        run: php artisan test
+        env:
+          DB_CONNECTION: ${{ matrix.db }}
+          DB_HOST: 127.0.0.1
+          DB_DATABASE: ${{ matrix.db == 'mysql' && 'imagier_test' || ':memory:' }}
+          DB_USERNAME: root
+          DB_PASSWORD: ""
+
+  admin:
+    name: Administration
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Build (vérifie aussi les types)
+        run: npm run build
+      - name: Failles connues (npm audit)
+        run: npm audit --audit-level=high
+
+  mobile:
+    name: Application mobile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - name: Vérification des types
+        run: npx tsc --noEmit
+      - name: Failles connues (npm audit)
+        run: npm audit --audit-level=high

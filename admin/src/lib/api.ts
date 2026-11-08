@@ -79,6 +79,7 @@ export type Category = {
   emoji: string | null
   color: string | null
   image_url: string | null
+  thumb_url: string | null
   sort_order: number
   is_published: boolean
   items_count: number
@@ -92,6 +93,7 @@ export type Item = {
   category?: { id: number; slug: string; emoji: string | null }
   emoji: string | null
   image_url: string | null
+  thumb_url: string | null
   sort_order: number
   is_published: boolean
   translations: Record<string, ItemTranslation>

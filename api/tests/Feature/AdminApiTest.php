@@ -50,7 +50,7 @@ class AdminApiTest extends TestCase
 
         $this->postJson('/api/v1/auth/login', ['email' => 'kid@test.local', 'password' => 'wrong'])->assertStatus(422);
         $this->postJson('/api/v1/auth/login', ['email' => 'kid@test.local', 'password' => 'secret-pass'])
-            ->assertStatus(422)->assertJsonPath('errors.email.0', 'This account cannot open the admin.');
+            ->assertStatus(422)->assertJsonPath('errors.email.0', "Ce compte ne peut pas ouvrir l'administration.");
     }
 
     public function test_admin_routes_need_an_admin_token(): void
@@ -110,7 +110,10 @@ class AdminApiTest extends TestCase
             ->assertOk()->assertJsonPath('data.translations.fr.audio_url', fn ($url) => str_contains($url, '/audio/fr/'));
 
         $item->refresh()->load('translations');
-        $paths = [$item->image_path, $item->translation('fr')->audio_path];
+        $this->assertSame(['card', 'full', 'thumb'], collect($item->image_variants)->keys()->sort()->values()->all());
+        $this->assertStringEndsWith('-full.webp', $item->image_path);
+        $this->assertStringStartsWith("items/{$item->id}/audio/fr/", $item->translation('fr')->audio_path);
+        $paths = [...array_values($item->image_variants), $item->translation('fr')->audio_path];
         Storage::disk('public')->assertExists($paths);
 
         // The public API now serves the recording
@@ -118,6 +121,16 @@ class AdminApiTest extends TestCase
 
         $this->deleteJson("/api/v1/admin/items/{$item->id}")->assertNoContent();
         Storage::disk('public')->assertMissing($paths);
+    }
+
+    public function test_a_file_that_is_not_an_image_is_refused(): void
+    {
+        $this->actingAsAdmin();
+        $item = Item::first();
+
+        $fake = UploadedFile::fake()->createWithContent('pomme.jpg', '<?php echo "pas une image";');
+        $this->post("/api/v1/admin/items/{$item->id}/image", ['image' => $fake], ['Accept' => 'application/json'])
+            ->assertUnprocessable()->assertJsonValidationErrors('image');
     }
 
     public function test_audio_needs_an_existing_translation(): void

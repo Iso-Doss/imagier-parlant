@@ -189,7 +189,7 @@ export function CategoriesPage() {
               <Button size="icon" variant="ghost" className="size-7" disabled={i === 0} onClick={() => swap(i, i - 1)} aria-label="Monter"><ArrowUp /></Button>
               <Button size="icon" variant="ghost" className="size-7" disabled={i === categories.length - 1} onClick={() => swap(i, i + 1)} aria-label="Descendre"><ArrowDown /></Button>
             </div>
-            <Thumb image={c.image_url} emoji={c.emoji} color={c.color} className="size-14 text-3xl" />
+            <Thumb image={c.thumb_url ?? c.image_url} emoji={c.emoji} color={c.color} className="size-14 text-3xl" />
             <div className="min-w-0 flex-1">
               <div className="font-display text-lg font-bold leading-tight">{displayName(c.translations, languages)}</div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
