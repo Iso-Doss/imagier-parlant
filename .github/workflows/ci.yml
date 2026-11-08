@@ -27,12 +27,10 @@ jobs:
         image: mysql:8.4
         env:
           MYSQL_DATABASE: imagier_test
-          MYSQL_USER: imagier
-          MYSQL_PASSWORD: imagier
-          MYSQL_ROOT_PASSWORD: root
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
         ports: ["3306:3306"]
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot"
           --health-interval=5s --health-retries=20
     steps:
       - uses: actions/checkout@v4
@@ -74,8 +72,8 @@ jobs:
           DB_CONNECTION: ${{ matrix.db }}
           DB_HOST: 127.0.0.1
           DB_DATABASE: ${{ matrix.db == 'mysql' && 'imagier_test' || ':memory:' }}
-          DB_USERNAME: imagier
-          DB_PASSWORD: imagier
+          DB_USERNAME: root
+          DB_PASSWORD: ""
 
   admin:
     name: Administration

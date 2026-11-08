@@ -26,6 +26,9 @@ docker compose up -d mysql s3        # MySQL sur 3306, S3 local (SeaweedFS) sur 
 docker compose up -d redis           # seulement si Redis n'est pas déjà installé sur la machine
 ```
 
+Ces services sont faits pour le développement : MySQL et le S3 local n'ont pas de mot de passe
+et ne sont joignables que depuis la machine (`127.0.0.1`).
+
 Au premier démarrage, créer le bucket des médias :
 
 ```bash
@@ -46,6 +49,7 @@ php artisan horizon                  # traitement des files (dans un autre termi
 ```
 
 Le seeder crée le compte d'administration à partir de `ADMIN_EMAIL` / `ADMIN_PASSWORD` dans `api/.env`.
+Si `ADMIN_PASSWORD` est vide, il choisit un mot de passe au hasard et l'affiche une seule fois.
 Le tableau de bord des files est sur http://localhost:8000/horizon (local uniquement).
 
 ### Médias
