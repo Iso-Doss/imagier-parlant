@@ -39,18 +39,20 @@ reste, car produire 50 000 objets prend du temps quel que soit le code.
 - [x] Catalogue de départ : 11 catégories, 146 objets
 - [x] Dépôt GitHub
 
-## Phase 1 — Prêt pour la production (2 semaines)
+## Phase 1 — Prêt pour la production (2 semaines) 🚧
 
 Rendre le socle solide avant d'ajouter des fonctions.
 
-- [ ] Passer de SQLite à MySQL (Herd en local) ; tests sur MySQL dans l'intégration continue
-- [ ] Redis + Horizon ; files `default`, `media`, `tts`, `imports`, `packs`
-- [ ] Stockage S3 (disque `s3`) + CDN ; URL de médias avec empreinte ; migration des fichiers existants
-- [ ] Traitement des images à l'envoi (WebP 96/320/768, EXIF retiré)
-- [ ] Intégration continue GitHub Actions : tests API, lint et build admin, typecheck mobile, audits
-- [ ] Environnement de recette (staging) déployé automatiquement depuis `main`
-- [ ] Sentry sur les trois applications
-- [ ] Traduire en français le README et les messages d'erreur de l'API (`lang/fr`)
+- [x] Passer de SQLite à MySQL (Docker en local) ; tests sur SQLite **et** MySQL dans l'intégration continue
+- [x] Redis + Horizon ; files `default`, `media`, `tts`, `imports`, `packs`
+- [x] Stockage S3 (`MEDIA_DISK=s3`, SeaweedFS en local) ; URL de médias avec empreinte ; commande `media:migrate` pour les fichiers existants
+- [x] Traitement des images à l'envoi (WebP 96/320/768, EXIF retiré, faux fichiers refusés)
+- [x] Intégration continue GitHub Actions : tests API, Pint, Larastan, lint et build admin, types mobile, audits
+- [x] Messages d'erreur de l'API (`lang/fr`) et README en français
+- [x] Référence unique par objet (`items.reference`) et comparaison exacte des emoji sous MySQL
+- [ ] CDN devant le stockage — **décision : fournisseur** (Cloudflare R2 + CDN, Scaleway, AWS S3 + CloudFront)
+- [ ] Environnement de recette (staging) déployé automatiquement depuis `main` — **décision : hébergeur** (Laravel Cloud, Forge + VPS, Ploi…)
+- [ ] Sentry sur les trois applications — **à faire : créer le compte et les DSN**
 
 **Terminé quand** : une modification fusionnée sur `main` est en recette en moins de 15 minutes,
 tests verts, et une image envoyée depuis l'admin s'affiche dans l'app via le CDN.
