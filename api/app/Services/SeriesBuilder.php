@@ -31,4 +31,23 @@ class SeriesBuilder
 
         return $series->take($count)->values();
     }
+
+    /**
+     * Glisse des objets « à revoir » dans une série, à des places au hasard,
+     * en gardant la règle : jamais deux fois le même objet de suite.
+     */
+    public function mixIn(Collection $series, Collection $review): Collection
+    {
+        $series = $series->values()->all();
+        foreach ($review->values() as $item) {
+            $places = collect(range(0, count($series)))->shuffle();
+            $place = $places->first(fn (int $i) => ! (isset($series[$i - 1]) && $series[$i - 1]->is($item))
+                && ! (isset($series[$i]) && $series[$i]->is($item)));
+            if ($place !== null) {
+                array_splice($series, $place, 0, [$item]);
+            }
+        }
+
+        return collect($series);
+    }
 }
