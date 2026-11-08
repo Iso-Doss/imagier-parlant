@@ -9,6 +9,8 @@ counts down, then says and writes the name of the object. French and English, mo
 | `admin/`  | Back office, React + shadcn/ui            | done          |
 | `mobile/` | Mobile app, Expo (React Native)           | done          |
 
+Documentation (en français) : [docs/](docs/README.md) — PRD, TRD, parcours, UI/UX, backend, plan, sécurité, conventions.
+
 ## Run the API
 
 ```bash
