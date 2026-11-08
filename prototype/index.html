@@ -1,0 +1,495 @@
+<title>Imagier parlant</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: one-column phone app, flash-card "imagier" look — thick outlines, hard offset shadows, big emoji cards */
+:root{
+  --sky:#E7F1FA; --paper:#FFFFFF; --ink:#1B2A4A; --muted:#5A6987;
+  --edge:#1B2A4A; --drop:#1B2A4A;
+  --sun:#FFC53D; --sun-ink:#1B2A4A; --coral:#F2624A; --leaf:#22A97F;
+  --t1:#FFF0C4; --t2:#FFE1D9; --t3:#D5F2E7; --t4:#E1E5FF; --t5:#F6DFF3;
+  --track:#D3E0EE;
+  --display:"Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+  --body:"Nunito", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --sky:#0F192C; --paper:#17243D; --ink:#EEF3FB; --muted:#9DAECB;
+  --edge:#3B4F78; --drop:#060B16;
+  --sun:#FFC53D; --sun-ink:#1B2A4A; --coral:#FF8570; --leaf:#4FD3A8;
+  --t1:#3A3220; --t2:#3C2826; --t3:#1C3830; --t4:#252B4B; --t5:#382540;
+  --track:#26385A; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --sky:#0F192C; --paper:#17243D; --ink:#EEF3FB; --muted:#9DAECB;
+  --edge:#3B4F78; --drop:#060B16;
+  --sun:#FFC53D; --sun-ink:#1B2A4A; --coral:#FF8570; --leaf:#4FD3A8;
+  --t1:#3A3220; --t2:#3C2826; --t3:#1C3830; --t4:#252B4B; --t5:#382540;
+  --track:#26385A; color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--sky);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));}
+*{box-sizing:border-box}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--coral);outline-offset:3px}
+.app{max-width:760px;margin:0 auto;padding-block:20px 120px;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance}
+.label{font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:48px;height:48px;border-radius:14px;background:var(--sun);border:3px solid var(--edge);box-shadow:3px 3px 0 var(--drop);
+  display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:28px;color:var(--sun-ink);transform:rotate(-6deg)}
+.brand h1{font-size:1.7rem;font-weight:800}
+.brand p{margin:0;color:var(--muted);font-size:.9rem}
+.seg{display:inline-flex;border:3px solid var(--edge);border-radius:14px;background:var(--paper);overflow:hidden;box-shadow:3px 3px 0 var(--drop)}
+.seg button{padding:8px 14px;font-weight:800;min-width:48px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+
+/* categories */
+.section{display:flex;flex-direction:column;gap:12px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.section-head h2{font-size:1.35rem}
+.link{font-weight:800;color:var(--coral);text-decoration:underline;text-underline-offset:3px;padding:4px}
+.cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.cat{position:relative;text-align:left;background:var(--tint,var(--t1));border:3px solid var(--edge);border-radius:18px;padding:12px 14px 12px;
+  display:flex;flex-direction:column;gap:2px;box-shadow:4px 4px 0 var(--drop);transition:transform .12s, box-shadow .12s}
+.cat:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--drop)}
+.cat:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--drop)}
+.cat .em{font-size:2.6rem;line-height:1.1}
+.cat .name{font-family:var(--display);font-weight:700;font-size:1.15rem;line-height:1.15}
+.cat .count{font-size:.85rem;color:var(--muted);font-weight:700}
+.cat .check{position:absolute;top:10px;right:10px;width:28px;height:28px;border-radius:50%;border:3px solid var(--edge);background:var(--paper);
+  display:grid;place-items:center;font-weight:900;font-size:15px;color:transparent}
+.cat[aria-pressed="true"]{outline:3px solid var(--edge);outline-offset:-9px}
+.cat[aria-pressed="true"] .check{background:var(--leaf);color:#fff}
+
+/* settings */
+.settings{background:var(--paper);border:3px solid var(--edge);border-radius:20px;padding:18px;display:grid;gap:18px;box-shadow:4px 4px 0 var(--drop)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.row .txt{min-width:0;flex:1 1 200px}
+.row .txt b{display:block;font-weight:800}
+.row .txt span{color:var(--muted);font-size:.88rem}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:7px 14px;border-radius:999px;border:2.5px solid var(--edge);font-weight:800;background:var(--paper);font-variant-numeric:tabular-nums}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.switch{width:56px;height:32px;border-radius:999px;border:2.5px solid var(--edge);background:var(--track);position:relative;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:var(--paper);border:2.5px solid var(--edge);transition:left .15s}
+.switch[aria-checked="true"]{background:var(--leaf)}
+.switch[aria-checked="true"]::after{left:26px}
+.note{font-size:.88rem;color:var(--muted);margin:0}
+
+.startbar{position:fixed;left:0;right:0;bottom:0;padding:14px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:linear-gradient(to top,var(--sky) 65%,transparent);display:flex;justify-content:center;z-index:5}
+.big{font-family:var(--display);font-weight:800;font-size:1.3rem;background:var(--sun);color:var(--sun-ink);border:3px solid var(--edge);border-radius:18px;
+  padding:12px 28px;box-shadow:4px 4px 0 var(--drop);width:min(520px,100%);transition:transform .1s, box-shadow .1s}
+.big:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--drop)}
+.big:disabled{opacity:.5;cursor:not-allowed}
+
+/* play screen */
+.play{max-width:620px;margin:0 auto;min-height:100%;padding-block:14px 24px;display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:12px}
+.icon-btn{width:46px;height:46px;flex:none;border-radius:14px;border:3px solid var(--edge);background:var(--paper);box-shadow:3px 3px 0 var(--drop);
+  display:grid;place-items:center;font-weight:900;font-size:1.1rem}
+.icon-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--drop)}
+.icon-btn svg{width:20px;height:20px}
+.progress{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.progress .meta{display:flex;justify-content:space-between;font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums}
+.ptrack{height:14px;border-radius:999px;border:2.5px solid var(--edge);background:var(--paper);overflow:hidden}
+.pfill{height:100%;width:0;background:var(--leaf);transition:width .4s}
+.card{position:relative;background:var(--tint,var(--t1));border:4px solid var(--edge);border-radius:28px;box-shadow:6px 6px 0 var(--drop);
+  aspect-ratio:1/1;max-width:100%;max-height:52vh;margin:0 auto;width:min(100%,52vh);display:grid;place-items:center;overflow:hidden}
+.card .pic{font-size:min(38vw,24vh,210px);line-height:1;user-select:none}
+.card.pop .pic{animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{0%{transform:scale(.3) rotate(-12deg);opacity:0}100%{transform:none;opacity:1}}
+.card .catname{position:absolute;top:12px;left:14px;font-size:.78rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stage{min-height:150px;display:grid;place-items:center;text-align:center}
+.question{font-family:var(--display);font-weight:800;font-size:clamp(1.6rem,6vw,2.3rem)}
+.timer{display:flex;align-items:center;gap:16px;justify-content:center}
+.ring{position:relative;width:84px;height:84px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:9}
+.ring .bg{stroke:var(--track)}
+.ring .fg{stroke:var(--coral);stroke-linecap:round}
+.ring .num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:2.2rem;font-variant-numeric:tabular-nums}
+.answer{display:flex;flex-direction:column;align-items:center;gap:2px}
+.answer .word{font-family:var(--display);font-weight:800;font-size:clamp(2.2rem,10vw,3.6rem);line-height:1;animation:rise .45s ease-out}
+.answer .word .art{color:var(--muted);font-weight:700;font-size:.55em;margin-right:.25em}
+.answer .trans{font-weight:700;color:var(--muted);font-size:1.05rem}
+.answer .trans .flag{font-size:.75rem;font-weight:800;letter-spacing:.06em;border:2px solid var(--edge);border-radius:6px;padding:0 5px;margin-right:6px;color:var(--ink)}
+.answer .said{font-size:1rem;font-weight:700;color:var(--leaf)}
+@keyframes rise{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+.controls{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{font-weight:800;padding:11px 20px;border-radius:14px;border:3px solid var(--edge);background:var(--paper);box-shadow:3px 3px 0 var(--drop);display:inline-flex;align-items:center;gap:8px}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--drop)}
+.btn.primary{background:var(--sun);color:var(--sun-ink)}
+.paused{position:fixed;inset:0;background:color-mix(in srgb,var(--sky) 88%,transparent);display:grid;place-items:center;z-index:20;padding:16px}
+.paused .box{text-align:center;display:grid;gap:14px;justify-items:center}
+.paused h2{font-size:2rem}
+
+/* done screen */
+.done{max-width:620px;margin:0 auto;padding-block:28px 40px;display:flex;flex-direction:column;gap:20px;text-align:center;align-items:center}
+.done h2{font-size:clamp(2.2rem,9vw,3.2rem)}
+.done p{margin:0;color:var(--muted);font-weight:700}
+.seen{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:100%}
+.seen span{font-size:1.9rem;width:52px;height:52px;display:grid;place-items:center;background:var(--paper);border:2.5px solid var(--edge);border-radius:12px}
+.warn{background:var(--t2);border:2.5px solid var(--edge);border-radius:14px;padding:10px 14px;font-size:.9rem;font-weight:700}
+@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+</style>
+
+<div id="home" class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">?</div>
+      <div><h1 data-t="appName">Imagier parlant</h1><p data-t="tagline"></p></div>
+    </div>
+    <div class="seg" role="group" aria-label="Langue / Language">
+      <button id="lang-fr" data-lang="fr">FR</button><button id="lang-en" data-lang="en">EN</button>
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="section-head"><h2 data-t="chooseCats"></h2><button class="link" id="toggleAll"></button></div>
+    <div class="cats" id="cats"></div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2 data-t="mySeries"></h2></div>
+    <div class="settings">
+      <div class="row"><div class="txt"><b data-t="howMany"></b><span data-t="howManyHint"></span></div>
+        <div class="chips" id="lenChips"></div></div>
+      <div class="row"><div class="txt"><b data-t="thinkTime"></b><span data-t="thinkTimeHint"></span></div>
+        <div class="chips" id="delayChips"></div></div>
+      <div class="row"><div class="txt"><b data-t="countStyle"></b><span data-t="countStyleHint"></span></div>
+        <div class="chips" id="countChips"></div></div>
+      <div class="row"><div class="txt"><b data-t="showWord"></b><span data-t="showWordHint"></span></div>
+        <button class="switch" id="sw-word" role="switch"></button></div>
+      <div class="row"><div class="txt"><b data-t="showTrans"></b><span data-t="showTransHint"></span></div>
+        <button class="switch" id="sw-trans" role="switch"></button></div>
+      <div class="row"><div class="txt"><b data-t="autoNext"></b><span data-t="autoNextHint"></span></div>
+        <button class="switch" id="sw-auto" role="switch"></button></div>
+      <p class="note" id="voiceNote"></p>
+    </div>
+  </section>
+
+  <div class="startbar"><button class="big" id="start"></button></div>
+</div>
+
+<div id="play" class="play" hidden>
+  <div class="bar">
+    <button class="icon-btn" id="quit" aria-label="Quitter">✕</button>
+    <div class="progress">
+      <div class="meta"><span id="pcount">1 / 10</span><span id="pcat"></span></div>
+      <div class="ptrack"><div class="pfill" id="pfill"></div></div>
+    </div>
+    <button class="icon-btn" id="pause" aria-label="Pause"><svg viewBox="0 0 20 20" fill="currentColor"><rect x="4" y="3" width="4" height="14" rx="1"/><rect x="12" y="3" width="4" height="14" rx="1"/></svg></button>
+  </div>
+  <div class="card" id="card"><span class="catname" id="cardCat"></span><span class="pic" id="pic" role="img"></span></div>
+  <div class="stage" id="stage"></div>
+  <div class="controls">
+    <button class="btn" id="repeat">🔊 <span data-t="repeat"></span></button>
+    <button class="btn primary" id="next"><span id="nextLabel"></span> →</button>
+  </div>
+</div>
+
+<div id="done" class="done" hidden>
+  <div class="logo" aria-hidden="true" style="width:72px;height:72px;font-size:40px">★</div>
+  <h2 data-t="bravo"></h2>
+  <p id="doneText"></p>
+  <div class="seen" id="seen"></div>
+  <div class="controls">
+    <button class="btn primary" id="again" data-t="again"></button>
+    <button class="btn" id="home-btn" data-t="changeCats"></button>
+  </div>
+</div>
+
+<div class="paused" id="pausedLayer" hidden>
+  <div class="box"><h2 data-t="paused"></h2><button class="big" id="resume" style="width:auto" data-t="resume"></button></div>
+</div>
+
+<script>
+// ---------- Data (exemples pour le prototype : les emoji remplacent les photos) ----------
+// fr / en = nom avec article ; frS / enS = phrase complète quand "C'est … / It's …" ne marche pas (pluriels)
+const CATS = [
+ {id:"fruits", em:"🍎", fr:"Fruits", en:"Fruits", items:[
+  ["🍎","une pomme","an apple"],["🍌","une banane","a banana"],["🍊","une orange","an orange"],["🍓","une fraise","a strawberry"],
+  ["🍋","un citron","a lemon"],["🍉","une pastèque","a watermelon"],["🍍","un ananas","a pineapple"],["🍒","des cerises","cherries","Ce sont des cerises","They are cherries"],
+  ["🍐","une poire","a pear"],["🍑","une pêche","a peach"],["🥝","un kiwi","a kiwi"],["🥭","une mangue","a mango"],["🥥","une noix de coco","a coconut"],
+  ["🍇","du raisin","grapes",null,"They are grapes"]]},
+ {id:"legumes", em:"🥕", fr:"Légumes", en:"Vegetables", items:[
+  ["🥕","une carotte","a carrot"],["🍅","une tomate","a tomato"],["🥦","un brocoli","broccoli"],["🌽","du maïs","corn"],["🥔","une pomme de terre","a potato"],
+  ["🍆","une aubergine","an eggplant"],["🥒","un concombre","a cucumber"],["🫑","un poivron","a pepper"],["🧅","un oignon","an onion"],["🧄","de l'ail","garlic"],
+  ["🍄","un champignon","a mushroom"],["🥬","une salade","lettuce"]]},
+ {id:"animaux", em:"🐶", fr:"Animaux", en:"Animals", items:[
+  ["🐶","un chien","a dog"],["🐱","un chat","a cat"],["🦁","un lion","a lion"],["🐘","un éléphant","an elephant"],["🦒","une girafe","a giraffe"],
+  ["🐒","un singe","a monkey"],["🐄","une vache","a cow"],["🐴","un cheval","a horse"],["🐷","un cochon","a pig"],["🐑","un mouton","a sheep"],
+  ["🐰","un lapin","a rabbit"],["🐔","une poule","a hen"],["🦆","un canard","a duck"],["🐟","un poisson","a fish"],["🐢","une tortue","a turtle"],
+  ["🦋","un papillon","a butterfly"],["🦓","un zèbre","a zebra"],["🐊","un crocodile","a crocodile"]]},
+ {id:"maison", em:"🛋️", fr:"La maison", en:"At home", items:[
+  ["🪑","une chaise","a chair"],["🛏️","un lit","a bed"],["🛋️","un canapé","a sofa"],["🚪","une porte","a door"],["🪟","une fenêtre","a window"],
+  ["💡","une ampoule","a light bulb"],["📺","une télévision","a television"],["🕰️","une horloge","a clock"],["🔑","une clé","a key"],["🪞","un miroir","a mirror"],
+  ["🧹","un balai","a broom"],["📱","un téléphone","a phone"],["💻","un ordinateur","a computer"],["☂️","un parapluie","an umbrella"]]},
+ {id:"cuisine", em:"🍳", fr:"La cuisine", en:"Kitchen", items:[
+  ["🥄","une cuillère","a spoon"],["🔪","un couteau","a knife"],["🍴","une fourchette et un couteau","a fork and a knife"],["🍳","une poêle","a frying pan"],
+  ["🫖","une théière","a teapot"],["☕","une tasse","a cup"],["🥛","un verre de lait","a glass of milk"],["🧂","du sel","salt"],["🍞","du pain","bread"],
+  ["🥚","un œuf","an egg"],["🧀","du fromage","cheese"],["🍯","du miel","honey"],["🫙","un bocal","a jar"]]},
+ {id:"vetements", em:"👕", fr:"Vêtements", en:"Clothes", items:[
+  ["👕","un t-shirt","a T-shirt"],["👖","un jean","jeans",null,"They are jeans"],["👗","une robe","a dress"],["🧢","une casquette","a cap"],
+  ["👟","une basket","a sneaker"],["🧦","des chaussettes","socks","Ce sont des chaussettes","They are socks"],["🧤","des gants","gloves","Ce sont des gants","They are gloves"],
+  ["🧣","une écharpe","a scarf"],["👒","un chapeau","a hat"],["🧥","un manteau","a coat"],["👓","des lunettes","glasses","Ce sont des lunettes","They are glasses"],
+  ["🩳","un short","shorts",null,"They are shorts"],["👜","un sac","a bag"],["🥾","une chaussure de marche","a boot"]]},
+ {id:"transports", em:"🚗", fr:"Transports", en:"Transport", items:[
+  ["🚗","une voiture","a car"],["🚌","un bus","a bus"],["🚲","un vélo","a bike"],["🚂","un train","a train"],["✈️","un avion","a plane"],
+  ["🚁","un hélicoptère","a helicopter"],["🚢","un bateau","a ship"],["🏍️","une moto","a motorbike"],["🚒","un camion de pompiers","a fire engine"],
+  ["🚑","une ambulance","an ambulance"],["🚜","un tracteur","a tractor"],["🚀","une fusée","a rocket"],["🛴","une trottinette","a scooter"],["🚕","un taxi","a taxi"]]},
+ {id:"ecole", em:"🎒", fr:"L'école", en:"School", items:[
+  ["✏️","un crayon","a pencil"],["🖍️","un crayon de couleur","a crayon"],["📕","un livre","a book"],["✂️","des ciseaux","scissors","Ce sont des ciseaux","They are scissors"],
+  ["📏","une règle","a ruler"],["🎒","un cartable","a school bag"],["🖊️","un stylo","a pen"],["📓","un cahier","a notebook"],["📎","un trombone","a paper clip"],
+  ["🖌️","un pinceau","a paintbrush"],["🌍","un globe","a globe"],["🧮","un boulier","an abacus"]]},
+ {id:"bain", em:"🛁", fr:"Salle de bain", en:"Bathroom", items:[
+  ["🪥","une brosse à dents","a toothbrush"],["🧼","du savon","soap"],["🛁","une baignoire","a bathtub"],["🚿","une douche","a shower"],
+  ["🚽","les toilettes","a toilet","Ce sont les toilettes"],["🧻","du papier toilette","toilet paper"],["🧽","une éponge","a sponge"],["🪒","un rasoir","a razor"],["🧺","un panier","a basket"]]},
+ {id:"jouets", em:"🧸", fr:"Jouets", en:"Toys", items:[
+  ["⚽","un ballon","a ball"],["🧸","un ours en peluche","a teddy bear"],["🪀","un yoyo","a yo-yo"],["🪁","un cerf-volant","a kite"],["🎲","un dé","a dice"],
+  ["🧩","une pièce de puzzle","a puzzle piece"],["🎈","un ballon de baudruche","a balloon"],["🪆","une poupée russe","a nesting doll"],["🎸","une guitare","a guitar"],
+  ["🥁","un tambour","a drum"],["🎺","une trompette","a trumpet"],["🎨","une palette de peinture","a paint palette"]]},
+ {id:"nature", em:"🌈", fr:"Nature", en:"Nature", items:[
+  ["☀️","le soleil","the sun"],["🌙","la lune","the moon"],["⭐","une étoile","a star"],["☁️","un nuage","a cloud"],["🌈","un arc-en-ciel","a rainbow"],
+  ["🌳","un arbre","a tree"],["🌸","une fleur","a flower"],["🍂","des feuilles","leaves","Ce sont des feuilles","They are leaves"],["🌋","un volcan","a volcano"],
+  ["⛰️","une montagne","a mountain"],["🌊","une vague","a wave"],["❄️","un flocon de neige","a snowflake"],["🔥","du feu","fire"],["🪨","un rocher","a rock"]]},
+];
+const TINTS = ["--t1","--t2","--t3","--t4","--t5"];
+CATS.forEach((c,i)=>{ c.tint = `var(${TINTS[i%TINTS.length]})`;
+  c.items = c.items.map(([em,fr,en,frS,enS])=>({em,fr,en,frS,enS,cat:c})); });
+
+// ---------- Textes de l'interface ----------
+const T = {
+ fr:{appName:"Imagier parlant", tagline:"Une image, une question, un mot.", chooseCats:"Choisis les catégories", all:"Tout choisir", none:"Tout enlever",
+  mySeries:"Ma série", howMany:"Nombre d'images", howManyHint:"Les images reviennent si la série est plus longue que les catégories.",
+  thinkTime:"Temps pour réfléchir", thinkTimeHint:"Avant que la réponse soit dite.", countStyle:"Décompte", countStyleHint:"Tic-tac ou chiffres dits à voix haute.",
+  tick:"Tic-tac", voice:"Voix", silent:"Muet",
+  showWord:"Écrire le nom", showWordHint:"Affiche le mot sous l'image.", showTrans:"Montrer la traduction", showTransHint:"Affiche aussi le mot en anglais.",
+  autoNext:"Image suivante automatique", autoNextHint:"Sinon, appuie sur « Suivant ».",
+  start:n=>`Commencer · ${n} images`, pick:"Choisis au moins une catégorie", objects:n=>`${n} objets`,
+  question:"Qu'est-ce que c'est ?", sentence:it=>it.frS || `C'est ${it.fr}`, word:it=>it.fr, other:it=>it.en, otherFlag:"EN",
+  repeat:"Répéter", next:"Suivant", answer:"Réponse", paused:"Pause", resume:"Reprendre",
+  bravo:"Bravo !", doneText:n=>`Tu as découvert ${n} images. Voici tout ce que tu as vu :`, again:"Rejouer la même série", changeCats:"Changer de catégories",
+  mixed:"Mélange", noVoice:"Aucune voix française trouvée sur cet appareil : l'application s'affichera sans le son.",
+  voiceOk:v=>`Voix utilisée : ${v}.`},
+ en:{appName:"Talking Picture Book", tagline:"One picture, one question, one word.", chooseCats:"Pick categories", all:"Select all", none:"Clear all",
+  mySeries:"My series", howMany:"Number of pictures", howManyHint:"Pictures come back if the series is longer than the categories.",
+  thinkTime:"Thinking time", thinkTimeHint:"Before the answer is said.", countStyle:"Countdown", countStyleHint:"Ticking or numbers read aloud.",
+  tick:"Tick-tock", voice:"Voice", silent:"Silent",
+  showWord:"Write the word", showWordHint:"Shows the word under the picture.", showTrans:"Show translation", showTransHint:"Also shows the word in French.",
+  autoNext:"Next picture automatically", autoNextHint:"Otherwise, tap “Next”.",
+  start:n=>`Start · ${n} pictures`, pick:"Pick at least one category", objects:n=>`${n} objects`,
+  question:"What is this?", sentence:it=>it.enS || `It's ${it.en}`, word:it=>it.en, other:it=>it.fr, otherFlag:"FR",
+  repeat:"Repeat", next:"Next", answer:"Answer", paused:"Paused", resume:"Resume",
+  bravo:"Well done!", doneText:n=>`You discovered ${n} pictures. Here is everything you saw:`, again:"Play the same series", changeCats:"Change categories",
+  mixed:"Mixed", noVoice:"No English voice found on this device: the app will run without sound.",
+  voiceOk:v=>`Voice: ${v}.`}
+};
+const NUMS = {fr:["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix"], en:["zero","one","two","three","four","five","six","seven","eight","nine","ten"]};
+
+// ---------- Réglages (gardés sur cet appareil) ----------
+const DEF = {lang:"fr", cats:["fruits","animaux","maison"], len:10, delay:5, count:"tick", word:true, trans:false, auto:true};
+let S = {...DEF};
+try{ const saved = JSON.parse(localStorage.getItem("imagier-settings")||"null"); if(saved) S = {...DEF, ...saved}; }catch(e){}
+const save = ()=>{ try{ localStorage.setItem("imagier-settings", JSON.stringify(S)); }catch(e){} };
+const $ = id=>document.getElementById(id);
+const t = k=>T[S.lang][k];
+
+// ---------- Voix ----------
+const synth = window.speechSynthesis;
+let voices = [];
+function loadVoices(){ voices = synth ? synth.getVoices() : []; renderVoiceNote(); }
+if(synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
+function pickVoice(){
+  const code = S.lang==="fr" ? "fr" : "en";
+  const list = voices.filter(v=>v.lang && v.lang.toLowerCase().startsWith(code));
+  const pref = S.lang==="fr" ? ["fr-fr","fr_fr"] : ["en-us","en_us","en-gb","en_gb"];
+  return list.find(v=>pref.includes(v.lang.toLowerCase()) && /google|amélie|thomas|samantha|daniel|natural|premium|enhanced/i.test(v.name))
+      || list.find(v=>pref.includes(v.lang.toLowerCase())) || list[0] || null;
+}
+function renderVoiceNote(){
+  const v = pickVoice();
+  $("voiceNote").textContent = !synth ? t("noVoice") : v ? t("voiceOk")(v.name) : (voices.length ? t("noVoice") : "");
+}
+function speak(text){
+  return new Promise(res=>{
+    if(!synth || !text) return res();
+    let finished=false; const fin=()=>{ if(!finished){ finished=true; clearTimeout(guard); res(); } };
+    const u = new SpeechSynthesisUtterance(text);
+    const v = pickVoice(); if(v) u.voice = v;
+    u.lang = S.lang==="fr" ? "fr-FR" : "en-US"; u.rate = 0.88; u.pitch = 1.1;
+    u.onend = fin; u.onerror = fin;
+    const guard = setTimeout(fin, 1800 + text.length*110);
+    synth.cancel(); synth.speak(u);
+  });
+}
+
+// ---------- Sons (tic-tac + carillon) ----------
+let ac = null;
+function audio(){ if(!ac){ try{ ac = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(ac && ac.state==="suspended") ac.resume(); return ac; }
+function beep(freq, dur, type="square", vol=.12, when=0){
+  const a = audio(); if(!a) return;
+  const o=a.createOscillator(), g=a.createGain(), t0=a.currentTime+when;
+  o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(vol,t0+.005); g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+  o.connect(g).connect(a.destination); o.start(t0); o.stop(t0+dur+.02);
+}
+const tick = last => last ? beep(1320,.09,"square",.1) : beep(880,.05,"square",.08);
+const chime = ()=>{ beep(784,.25,"triangle",.22); beep(1047,.35,"triangle",.22,.12); beep(1319,.45,"triangle",.18,.24); };
+
+// ---------- Écran d'accueil ----------
+function renderHome(){
+  document.documentElement.lang = S.lang;
+  document.querySelectorAll("[data-t]").forEach(el=>{ const v=t(el.dataset.t); if(typeof v==="string") el.textContent=v; });
+  $("lang-fr").setAttribute("aria-pressed", S.lang==="fr"); $("lang-en").setAttribute("aria-pressed", S.lang==="en");
+  $("cats").innerHTML = CATS.map(c=>`<button class="cat" style="--tint:${c.tint}" data-id="${c.id}" aria-pressed="${S.cats.includes(c.id)}">
+      <span class="check" aria-hidden="true">✓</span><span class="em" aria-hidden="true">${c.em}</span>
+      <span class="name">${c[S.lang]}</span><span class="count">${t("objects")(c.items.length)}</span></button>`).join("");
+  $("toggleAll").textContent = S.cats.length===CATS.length ? t("none") : t("all");
+  chips("lenChips", [10,20,50,100], S.len, v=>v, v=>{S.len=v;});
+  chips("delayChips", [3,5,8,10], S.delay, v=>`${v} s`, v=>{S.delay=v;});
+  chips("countChips", ["tick","voice","silent"], S.count, v=>t(v), v=>{S.count=v;});
+  sw("sw-word","word"); sw("sw-trans","trans"); sw("sw-auto","auto");
+  const b = $("start"); b.disabled = !S.cats.length; b.textContent = S.cats.length ? t("start")(S.len) : t("pick");
+  renderVoiceNote();
+}
+function chips(id, values, cur, label, set){
+  const box=$(id); box.innerHTML = values.map(v=>`<button class="chip" data-v="${v}" aria-pressed="${v===cur}">${label(v)}</button>`).join("");
+  box.onclick = e=>{ const c=e.target.closest(".chip"); if(!c) return; const raw=c.dataset.v; set(isNaN(raw)?raw:+raw); save(); renderHome(); };
+}
+function sw(id,key){ const el=$(id); el.setAttribute("aria-checked", !!S[key]); el.onclick=()=>{ S[key]=!S[key]; save(); renderHome(); }; }
+$("cats").onclick = e=>{ const c=e.target.closest(".cat"); if(!c) return; const id=c.dataset.id;
+  S.cats = S.cats.includes(id) ? S.cats.filter(x=>x!==id) : [...S.cats,id]; save(); renderHome(); };
+$("toggleAll").onclick = ()=>{ S.cats = S.cats.length===CATS.length ? [] : CATS.map(c=>c.id); save(); renderHome(); };
+document.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ S.lang=b.dataset.lang; save(); renderHome(); });
+
+// ---------- Série ----------
+const shuffle = a=>{ a=[...a]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+function buildQueue(){
+  const pool = CATS.filter(c=>S.cats.includes(c.id)).flatMap(c=>c.items);
+  const q=[]; while(q.length<S.len){ let round=shuffle(pool); if(q.length && round[0]===q[q.length-1] && round.length>1) round.push(round.shift()); q.push(...round); }
+  return q.slice(0,S.len);
+}
+let queue=[], idx=0, runId=0, paused=false, skipReq=false, phase="", wakeLock=null;
+const ABORT = Symbol("abort");
+const sleep = ms=>new Promise(r=>setTimeout(r,ms));
+async function wait(ms, my, onFrame){
+  let el=0, last=performance.now();
+  while(el<ms){
+    if(my!==runId) throw ABORT;
+    if(skipReq){ skipReq=false; return "skip"; }
+    await sleep(40); const now=performance.now();
+    if(!paused) el += now-last; last=now;
+    onFrame && onFrame(Math.min(el,ms));
+  }
+  return "done";
+}
+async function waitResume(my){ while(paused){ if(my!==runId) throw ABORT; await sleep(60); } }
+
+function show(screen){ ["home","play","done"].forEach(s=>$(s).hidden = s!==screen); window.scrollTo(0,0); }
+async function startSeries(reuse){
+  audio(); // débloque le son pendant le geste de l'utilisateur
+  if(synth){ const u=new SpeechSynthesisUtterance(" "); u.volume=0; synth.speak(u); }
+  if(!reuse) queue = buildQueue();
+  idx=0; paused=false; skipReq=false; $("pausedLayer").hidden=true;
+  $("nextLabel").textContent=t("next");
+  document.querySelectorAll("#play [data-t]").forEach(el=>el.textContent=t(el.dataset.t));
+  show("play");
+  try{ wakeLock = await navigator.wakeLock?.request("screen"); }catch(e){}
+  const my = ++runId;
+  try{
+    for(; idx<queue.length; idx++) await playItem(queue[idx], my);
+    finish();
+  }catch(e){ if(e!==ABORT) throw e; }
+}
+function stopRun(){ runId++; synth && synth.cancel(); try{ wakeLock?.release(); }catch(e){} wakeLock=null; }
+
+async function playItem(it, my){
+  const n=queue.length;
+  $("pcount").textContent = `${idx+1} / ${n}`;
+  $("pfill").style.width = `${(idx/n)*100}%`;
+  const cats = new Set(queue.map(q=>q.cat.id));
+  $("pcat").textContent = cats.size>1 ? t("mixed") : it.cat[S.lang];
+  const card=$("card"); card.style.setProperty("--tint", it.cat.tint);
+  $("cardCat").textContent = it.cat[S.lang];
+  $("pic").textContent = it.em; $("pic").setAttribute("aria-label", t("question"));
+  card.classList.remove("pop"); void card.offsetWidth; card.classList.add("pop");
+
+  // 1. la question
+  phase="question";
+  $("stage").innerHTML = `<div class="question">${t("question")}</div>`;
+  await wait(450,my); await waitResume(my);
+  if(my!==runId) throw ABORT;
+  await speak(t("question"));
+  await waitResume(my);
+
+  // 2. le décompte
+  phase="count";
+  const total=S.delay*1000, C=2*Math.PI*36;
+  $("stage").innerHTML = `<div class="timer"><div class="ring"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="36"/><circle class="fg" id="arc" cx="42" cy="42" r="36" stroke-dasharray="${C}" stroke-dashoffset="0"/></svg><div class="num" id="num">${S.delay}</div></div></div>`;
+  let shown=S.delay; countBeat(shown);
+  const res = await wait(total, my, el=>{
+    const arc=$("arc"); if(arc) arc.setAttribute("stroke-dashoffset", (C*el/total).toFixed(1));
+    const left = Math.max(1, Math.ceil((total-el)/1000));
+    if(left!==shown && el<total){ shown=left; $("num").textContent=left; countBeat(left); }
+  });
+
+  // 3. la réponse
+  phase="answer";
+  const L=T[S.lang];
+  const word = L.word(it);
+  const m = word.match(/^(un |une |des |du |de l'|le |la |les |l'|a |an |the )(.*)$/i);
+  const wordHtml = m ? `<span class="art">${m[1].trim()}</span>${m[2]}` : word;
+  $("stage").innerHTML = `<div class="answer">
+      ${S.word ? `<div class="word">${wordHtml}</div>` : `<div class="said">${L.sentence(it)} !</div>`}
+      ${S.trans ? `<div class="trans"><span class="flag">${L.otherFlag}</span>${L.other(it)}</div>` : ""}
+    </div>`;
+  if(res!=="skip") chime();
+  await sleep(250);
+  if(my!==runId) throw ABORT;
+  await speak(L.sentence(it));
+  await waitResume(my);
+
+  // 4. pause avant l'image suivante
+  phase="after";
+  $("pfill").style.width = `${((idx+1)/n)*100}%`;
+  if(S.auto) await wait(2200,my);
+  else { while(true){ if(my!==runId) throw ABORT; if(skipReq){ skipReq=false; break; } await sleep(60); } }
+}
+function countBeat(n){
+  if(S.count==="tick") tick(n===1);
+  else if(S.count==="voice"){ const w=NUMS[S.lang][n]; if(synth && w){ const u=new SpeechSynthesisUtterance(w); const v=pickVoice(); if(v) u.voice=v; u.lang=S.lang==="fr"?"fr-FR":"en-US"; u.rate=1.1; synth.cancel(); synth.speak(u); } }
+}
+function finish(){
+  stopRun();
+  $("pfill").style.width="100%";
+  document.querySelectorAll("#done [data-t]").forEach(el=>el.textContent=t(el.dataset.t));
+  $("doneText").textContent = t("doneText")(queue.length);
+  const uniq=[...new Map(queue.map(q=>[q.em+q.fr,q])).values()];
+  $("seen").innerHTML = uniq.map(q=>`<span title="${T[S.lang].word(q)}">${q.em}</span>`).join("");
+  show("done"); chime();
+}
+
+// ---------- Boutons ----------
+$("start").onclick = ()=>startSeries(false);
+$("again").onclick = ()=>startSeries(true);
+$("home-btn").onclick = ()=>{ show("home"); renderHome(); };
+$("quit").onclick = ()=>{ stopRun(); $("pausedLayer").hidden=true; show("home"); renderHome(); };
+$("next").onclick = ()=>{ skipReq=true; synth && synth.cancel(); };
+$("repeat").onclick = ()=>{ const it=queue[idx]; if(!it) return; speak(phase==="answer"||phase==="after" ? T[S.lang].sentence(it) : t("question")); };
+$("pause").onclick = ()=>{ paused=true; synth && synth.cancel(); $("pausedLayer").hidden=false; $("resume").focus(); };
+$("resume").onclick = ()=>{ paused=false; $("pausedLayer").hidden=true; };
+document.addEventListener("keydown", e=>{
+  if($("play").hidden) return;
+  if(e.key===" "||e.key==="ArrowRight"){ e.preventDefault(); if(paused) $("resume").click(); else $("next").click(); }
+  if(e.key==="Escape") $("quit").click();
+});
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden && !$("play").hidden && !paused) $("pause").click(); });
+
+renderHome();
+</script>
