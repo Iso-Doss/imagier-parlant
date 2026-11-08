@@ -1,0 +1,38 @@
+# Services de développement : MySQL, Redis, SeaweedFS (stockage compatible S3).
+# Lancer : docker compose up -d   (ou seulement certains : docker compose up -d mysql s3)
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: imagier
+      MYSQL_USER: imagier
+      MYSQL_PASSWORD: imagier
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "${MYSQL_HOST_PORT:-3306}:3306"
+    volumes:
+      - mysql:/var/lib/mysql
+      - ./docker/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+
+  # Stockage compatible S3 (remplace S3 en local). Lecture publique, écriture avec la clé.
+  s3:
+    image: chrislusf/seaweedfs:latest
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=1024
+    ports:
+      - "${S3_HOST_PORT:-8333}:8333"
+    volumes:
+      - s3:/data
+      - ./docker/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
+volumes:
+  mysql:
+  s3:

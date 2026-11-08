@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Category;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /** Loads the starter categories and objects. Safe to run again: it updates instead of duplicating. */
 class CatalogSeeder extends Seeder
@@ -22,7 +23,10 @@ class CatalogSeeder extends Seeder
                 $category->syncTranslations(collect($entry['names'])->map(fn ($name) => ['name' => $name])->all());
 
                 foreach ($entry['items'] as $order => [$emoji, $fr, $en, $frSentence, $enSentence]) {
-                    $item = $category->items()->firstOrCreate(['emoji' => $emoji], ['sort_order' => $order, 'is_published' => true]);
+                    $item = $category->items()->updateOrCreate(
+                        ['reference' => $category->slug.'-'.Str::slug($en)],
+                        ['emoji' => $emoji, 'sort_order' => $order, 'is_published' => true],
+                    );
                     $item->syncTranslations([
                         'fr' => ['name' => $fr, 'sentence' => $frSentence],
                         'en' => ['name' => $en, 'sentence' => $enSentence],

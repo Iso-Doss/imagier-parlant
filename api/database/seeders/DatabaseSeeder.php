@@ -13,8 +13,8 @@ class DatabaseSeeder extends Seeder
 
         // Admin account for the back office. Set ADMIN_EMAIL / ADMIN_PASSWORD in .env.
         User::updateOrCreate(
-            ['email' => env('ADMIN_EMAIL', 'admin@imagier.test')],
-            ['name' => 'Admin', 'password' => env('ADMIN_PASSWORD', 'change-me-please'), 'is_admin' => true],
+            ['email' => config('admin.email')],
+            ['name' => 'Admin', 'password' => config('admin.password'), 'is_admin' => true],
         );
     }
 }
