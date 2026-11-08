@@ -25,7 +25,7 @@ export function DoneScreen({ series, lang, onAgain, onHome }: { series: Series; 
       <View style={styles.grid}>
         {unique.map((i) => (
           <View key={i.id} style={[styles.tile, { backgroundColor: t.paper, borderColor: t.edge }]} accessibilityLabel={i.name ?? undefined}>
-            <Picture image={i.image_url} emoji={i.emoji} size={i.image_url ? 48 : 34} />
+            <Picture image={i.thumb_url ?? i.image_url} emoji={i.emoji} size={i.image_url ? 48 : 34} />
           </View>
         ))}
       </View>

@@ -18,18 +18,25 @@ function resolveBaseUrl(): string {
 
 export const API_URL = resolveBaseUrl()
 
-/** Laravel builds media URLs with its own APP_URL (localhost). A phone can't reach that, so point them at API_URL. */
+/**
+ * En développement, les adresses des médias pointent vers « localhost » (API ou S3 local).
+ * Un téléphone ne peut pas joindre ce nom : on le remplace par la machine de l'API,
+ * en gardant le port (8000 pour l'API, 8333 pour le S3 local).
+ */
 export function mediaUrl(url: string | null | undefined): string | null {
   if (!url) return null
-  return url.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, API_URL)
+  const apiHost = API_URL.replace(/^https?:\/\//, "").replace(/[:/].*$/, "")
+  return url.replace(/^(https?:\/\/)(localhost|127\.0\.0\.1)(?=[:/]|$)/, `$1${apiHost}`)
 }
 
 export type Language = { code: string; name: string; tts_locale: string; question: string; answer_template: string }
-export type Category = { id: number; slug: string; name: string | null; emoji: string | null; color: string | null; image_url: string | null; items_count: number }
+export type Category = { id: number; slug: string; name: string | null; emoji: string | null; color: string | null; image_url: string | null; thumb_url: string | null; items_count: number }
 export type Item = {
   id: number
   emoji: string | null
   image_url: string | null
+  card_url: string | null
+  thumb_url: string | null
   name: string | null
   sentence: string | null
   audio_url: string | null

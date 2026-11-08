@@ -8,7 +8,6 @@ use App\Http\Resources\Admin\AdminCategoryResource;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class CategoryController extends Controller
 {
@@ -75,22 +74,16 @@ class CategoryController extends Controller
 
     public function uploadImage(Request $request, Category $category)
     {
-        $request->validate(['image' => ['required', 'image', 'max:5120']]);
+        $request->validate(['image' => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:10240']]);
 
-        if ($category->image_path) {
-            Storage::disk('public')->delete($category->image_path);
-        }
-        $category->update(['image_path' => $request->file('image')->store('categories', 'public')]);
+        $category->replaceImage($request->file('image')->get());
 
         return $this->show($category);
     }
 
     public function deleteImage(Category $category)
     {
-        if ($category->image_path) {
-            Storage::disk('public')->delete($category->image_path);
-            $category->update(['image_path' => null]);
-        }
+        $category->removeImage();
 
         return $this->show($category);
     }

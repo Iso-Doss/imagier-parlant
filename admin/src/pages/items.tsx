@@ -129,7 +129,7 @@ export function ItemsPage() {
                 const cat = categories.find((c) => c.id === i.category_id)
                 return (
                   <TableRow key={i.id} className="cursor-pointer" onClick={() => { setEditing(i); setOpen(true) }}>
-                    <TableCell><Thumb image={i.image_url} emoji={i.emoji} color={cat?.color} /></TableCell>
+                    <TableCell><Thumb image={i.thumb_url ?? i.image_url} emoji={i.emoji} color={cat?.color} /></TableCell>
                     {languages.map((l) => {
                       const t = i.translations[l.code]
                       return (

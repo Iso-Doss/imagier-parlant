@@ -7,12 +7,14 @@ use App\Http\Requests\Admin\ItemRequest;
 use App\Http\Resources\Admin\AdminItemResource;
 use App\Models\Item;
 use App\Models\Language;
+use App\Services\MediaStore;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
+    public function __construct(private MediaStore $media) {}
+
     /**
      * Filters: ?category_id=1  ?search=pomme  ?published=1|0
      *          ?missing=image|audio|translation  ?per_page=25
@@ -89,22 +91,16 @@ class ItemController extends Controller
 
     public function uploadImage(Request $request, Item $item)
     {
-        $request->validate(['image' => ['required', 'image', 'max:5120']]);
+        $request->validate(['image' => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'max:10240']]);
 
-        if ($item->image_path) {
-            Storage::disk('public')->delete($item->image_path);
-        }
-        $item->update(['image_path' => $request->file('image')->store('items', 'public')]);
+        $item->replaceImage($request->file('image')->get());
 
         return $this->show($item);
     }
 
     public function deleteImage(Item $item)
     {
-        if ($item->image_path) {
-            Storage::disk('public')->delete($item->image_path);
-            $item->update(['image_path' => null]);
-        }
+        $item->removeImage();
 
         return $this->show($item);
     }
@@ -117,10 +113,15 @@ class ItemController extends Controller
         ]);
 
         $translation = $item->translations()->where('locale', $locale)->first();
-        abort_unless($translation, 404, "Add the \"$locale\" name before uploading its audio.");
+        abort_unless($translation !== null, 404, __('Add the ":locale" name before uploading its audio.', ['locale' => $locale]));
 
-        $this->deleteAudioFile($item, $locale);
-        $translation->update(['audio_path' => $request->file('audio')->store("audio/$locale", 'public')]);
+        $file = $request->file('audio');
+        $old = $translation->audio_path;
+        $path = $this->media->putAudio($file->get(), $file->guessExtension() ?: $file->getClientOriginalExtension(), "items/{$item->id}/audio/$locale");
+        $translation->update(['audio_path' => $path]);
+        if ($old && $old !== $path) {
+            $this->media->delete($old);
+        }
 
         return $this->show($item->unsetRelation('translations'));
     }
@@ -135,9 +136,6 @@ class ItemController extends Controller
 
     private function deleteAudioFile(Item $item, string $locale): void
     {
-        $path = $item->translations()->where('locale', $locale)->value('audio_path');
-        if ($path) {
-            Storage::disk('public')->delete($path);
-        }
+        $this->media->delete($item->translations()->where('locale', $locale)->value('audio_path'));
     }
 }

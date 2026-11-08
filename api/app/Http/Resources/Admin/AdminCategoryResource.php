@@ -5,7 +5,6 @@ namespace App\Http\Resources\Admin;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 /** @mixin Category */
 class AdminCategoryResource extends JsonResource
@@ -17,7 +16,9 @@ class AdminCategoryResource extends JsonResource
             'slug' => $this->slug,
             'emoji' => $this->emoji,
             'color' => $this->color,
-            'image_url' => $this->image_path ? Storage::disk('public')->url($this->image_path) : null,
+            'image_url' => $this->imageUrl(),
+            'card_url' => $this->imageUrl('card'),
+            'thumb_url' => $this->imageUrl('thumb'),
             'sort_order' => $this->sort_order,
             'is_published' => $this->is_published,
             'items_count' => $this->whenCounted('items'),
