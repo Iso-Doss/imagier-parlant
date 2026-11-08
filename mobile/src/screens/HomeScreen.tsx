@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react"
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { AVATARS, useAccount } from "../account"
 import { fetchCategories, fetchLanguages, type Category, type Language } from "../api"
 import { BigButton, Chip, Picture, Toggle } from "../components/ui"
 import { strings } from "../i18n"
-import type { CountStyle, Settings } from "../settings"
+import type { AnswerMode, CountStyle, Settings } from "../settings"
 import { fonts, hardShadow, tintFor, useTheme } from "../theme"
 
 type Props = {
@@ -13,9 +14,11 @@ type Props = {
   onStart: () => void
   starting: boolean
   startError: string | null
+  onParent: () => void
 }
 
-export function HomeScreen({ settings, update, onStart, starting, startError }: Props) {
+export function HomeScreen({ settings, update, onStart, starting, startError, onParent }: Props) {
+  const acc = useAccount()
   const t = useTheme()
   const s = strings(settings.lang)
   const insets = useSafeAreaInsets()
@@ -64,7 +67,30 @@ export function HomeScreen({ settings, update, onStart, starting, startError }: 
               <Text style={{ fontFamily: fonts.body, color: t.muted }}>{s.tagline}</Text>
             </View>
           </View>
+          <Pressable onPress={onParent} accessibilityRole="button" accessibilityLabel="Espace parent" hitSlop={8}
+            style={[styles.lock, { borderColor: t.edge, backgroundColor: t.paper }]}>
+            <Text style={{ fontSize: 20 }}>🔒</Text>
+          </Pressable>
         </View>
+
+        {acc.profiles.length > 0 && (
+          <View style={{ gap: 8 }}>
+            <Text style={[styles.label, { color: t.ink }]}>{s.whoPlays}</Text>
+            <View style={styles.chips}>
+              {acc.profiles.map((p) => (
+                <Pressable key={p.id} onPress={() => acc.selectProfile(p.id)} accessibilityRole="button" accessibilityState={{ selected: acc.activeProfile?.id === p.id }}
+                  style={[styles.who, { borderColor: t.edge, backgroundColor: acc.activeProfile?.id === p.id ? t.sun : t.paper }]}>
+                  <Text style={{ fontSize: 22 }}>{AVATARS[p.avatar] ?? "🙂"}</Text>
+                  <Text style={[styles.label, { color: t.ink }]}>{p.nickname}</Text>
+                </Pressable>
+              ))}
+              <Pressable onPress={() => acc.selectProfile(null)} accessibilityRole="button" accessibilityState={{ selected: !acc.activeProfile }}
+                style={[styles.who, { borderColor: t.edge, backgroundColor: !acc.activeProfile ? t.sun : t.paper }]}>
+                <Text style={[styles.label, { color: t.ink }]}>{s.guest}</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
 
         {languages.length > 1 && (
           <View style={styles.chips}>
@@ -133,6 +159,11 @@ export function HomeScreen({ settings, update, onStart, starting, startError }: 
               <Chip key={c} label={s[c]} selected={settings.countStyle === c} onPress={() => update({ countStyle: c })} />
             ))}
           </Setting>
+          <Setting label={s.answerMode}>
+            {(["parent", "watch"] as AnswerMode[]).map((m) => (
+              <Chip key={m} label={m === "parent" ? s.modeParent : s.modeWatch} selected={settings.answerMode === m} onPress={() => update({ answerMode: m })} />
+            ))}
+          </Setting>
           <Toggle label={s.showWord} value={settings.showWord} onChange={(v) => update({ showWord: v })} />
           {languages.length > 1 && <Toggle label={s.showTranslation} value={settings.showTranslation} onChange={(v) => update({ showTranslation: v })} />}
           <Toggle label={s.autoNext} value={settings.autoNext} onChange={(v) => update({ autoNext: v })} />
@@ -164,7 +195,10 @@ function Setting({ label, children }: { label: string; children: React.ReactNode
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, gap: 18, width: "100%", maxWidth: 760, alignSelf: "center" },
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  lock: { width: 46, height: 46, borderRadius: 14, borderWidth: 2.5, alignItems: "center", justifyContent: "center" },
+  label: { fontFamily: fonts.bodyBold, fontSize: 15 },
+  who: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 2.5 },
   brand: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1 },
   logo: { width: 48, height: 48, borderRadius: 14, borderWidth: 3, alignItems: "center", justifyContent: "center", transform: [{ rotate: "-6deg" }] },
   title: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32 },

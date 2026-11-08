@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react"
-import { Animated, AppState, Easing, StyleSheet, Text, View, useWindowDimensions } from "react-native"
+import { Animated, AppState, Easing, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useKeepAwake } from "expo-keep-awake"
 import * as Haptics from "expo-haptics"
 import * as Speech from "expo-speech"
 import { mediaUrl, type Item, type Series } from "../api"
+import type { AnswerResult } from "../account"
 import { playChime, playRecording, playTick, say, stopSpeaking } from "../audio"
 import { CountdownRing } from "../components/CountdownRing"
 import { BigButton, Picture, SmallButton } from "../components/ui"
@@ -17,11 +18,13 @@ const ABORT = Symbol("abort")
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const ARTICLE = /^(un |une |des |du |de l'|le |la |les |l'|a |an |the |some )(.*)$/i
 
+export type PlayResult = { item_id: number; result: AnswerResult; response_ms: number | null }
+
 export function PlayScreen({ series, settings, onQuit, onDone }: {
   series: Series
   settings: Settings
-  onQuit: () => void
-  onDone: () => void
+  onQuit: (results: PlayResult[]) => void
+  onDone: (results: PlayResult[]) => void
 }) {
   useKeepAwake()
   const t = useTheme()
@@ -38,6 +41,11 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
   const runId = useRef(0)
   const pausedRef = useRef(false)
   const skipRef = useRef(false)
+  // Réponse du parent pendant le compte à rebours (mode « un adulte valide »)
+  const verdictRef = useRef<"correct" | "wrong" | null>(null)
+  const results = useRef<PlayResult[]>([])
+  const [verdict, setVerdict] = useState<"correct" | "wrong" | null>(null)
+  const parentMode = settings.answerMode === "parent"
   const pop = useRef(new Animated.Value(0)).current
   const reveal = useRef(new Animated.Value(0)).current
 
@@ -51,6 +59,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     while (el < ms) {
       if (runId.current !== my) throw ABORT
       if (skipRef.current) { skipRef.current = false; return "skip" }
+      if (verdictRef.current) return "verdict"
       await sleep(50)
       const now = Date.now()
       if (!pausedRef.current) el += now - last
@@ -83,18 +92,29 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
 
     // 2. Countdown
     setPhase("count")
+    verdictRef.current = null
+    setVerdict(null)
     let shown = settings.delay
+    let answeredAt: number | null = null
     beat(shown)
     const result = await wait(total, my, (el) => {
       setElapsed(el)
+      if (verdictRef.current && answeredAt === null) answeredAt = el
       const left = Math.max(1, Math.ceil((total - el) / 1000))
       if (left !== shown && el < total) { shown = left; beat(left) }
     })
 
+    // Ce qu'on retient pour les progrès : jamais la voix, seulement le résultat
+    const outcome: AnswerResult = result === "skip" ? "skipped"
+      : !parentMode ? "skipped"
+      : (verdictRef.current as "correct" | "wrong" | null) ?? "silent"
+    results.current.push({ item_id: item.id, result: outcome, response_ms: outcome === "correct" ? answeredAt : null })
+
     // 3. Answer
     setPhase("answer")
     Animated.timing(reveal, { toValue: 1, duration: 380, easing: Easing.out(Easing.back(1.6)), useNativeDriver: true }).start()
-    if (result !== "skip") { playChime(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}) }
+    // Le carillon seulement si c'est trouvé (ou en mode « on regarde ») : jamais de son négatif
+    if (result !== "skip" && (outcome === "correct" || !parentMode)) { playChime(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}) }
     await sleep(250)
     if (runId.current !== my) throw ABORT
     await speakAnswer(item)
@@ -122,7 +142,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
           setIdx(i)
           await playItem(items[i], my)
         }
-        onDone()
+        onDone(results.current)
       } catch (e) {
         if (e !== ABORT) throw e
       }
@@ -148,7 +168,13 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     if (phase === "answer") speakAnswer(item)
     else say(language.question, language.tts_locale)
   }
-  const quit = () => { runId.current++; stopSpeaking(); onQuit() }
+  const quit = () => { runId.current++; stopSpeaking(); onQuit(results.current) }
+  const answer = (v: "correct" | "wrong") => {
+    if (phase !== "count" || verdictRef.current) return
+    verdictRef.current = v
+    setVerdict(v)
+    Haptics.selectionAsync().catch(() => {})
+  }
 
   const item = items[idx]
   const cats = new Set(items.map((i) => i.category?.slug))
@@ -194,6 +220,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
                 ) : (
                   <Text style={[styles.said, { color: t.leaf }]}>{item.sentence} !</Text>
                 )}
+                {parentMode && verdict === "correct" && <Text style={[styles.cheer, { color: t.leaf }]}>{s.bravo}</Text>}
                 {settings.showTranslation && item.translation && (
                   <Text style={[styles.translation, { color: t.muted }]}>{item.translation}</Text>
                 )}
@@ -202,10 +229,17 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
           </View>
         </View>
 
-        <View style={styles.controls}>
-          <SmallButton icon="🔊" label={s.repeat} onPress={repeat} />
-          <SmallButton label={`${s.next} →`} onPress={next} primary />
-        </View>
+        {parentMode && phase !== "answer" ? (
+          <View style={styles.controls}>
+            <JudgeButton label={s.notYet} icon="✗" color={t.coral} disabled={phase !== "count"} onPress={() => answer("wrong")} />
+            <JudgeButton label={s.found} icon="✓" color={t.leaf} disabled={phase !== "count"} onPress={() => answer("correct")} />
+          </View>
+        ) : (
+          <View style={styles.controls}>
+            <SmallButton icon="🔊" label={s.repeat} onPress={repeat} />
+            <SmallButton label={`${s.next} →`} onPress={next} primary />
+          </View>
+        )}
       </View>
 
       {paused && (
@@ -219,7 +253,32 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
   )
 }
 
+/** Gros bouton du parent : ✓ trouvé / ✗ pas encore */
+function JudgeButton({ label, icon, color, onPress, disabled }: { label: string; icon: string; color: string; onPress: () => void; disabled?: boolean }) {
+  const t = useTheme()
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={({ pressed }) => [
+        styles.judge,
+        { borderColor: t.edge, backgroundColor: color, opacity: disabled ? 0.45 : 1 },
+        pressed ? { transform: [{ translateX: 3 }, { translateY: 3 }], ...hardShadow(t.drop, 1) } : hardShadow(t.drop, 4),
+      ]}
+    >
+      <Text style={styles.judgeIcon}>{icon}</Text>
+      <Text style={styles.judgeLabel}>{label}</Text>
+    </Pressable>
+  )
+}
+
 const styles = StyleSheet.create({
+  judge: { flex: 1, maxWidth: 220, minHeight: 72, borderWidth: 3, borderRadius: 20, alignItems: "center", justifyContent: "center", paddingVertical: 8 },
+  judgeIcon: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: "#fff" },
+  judgeLabel: { fontFamily: fonts.bodyBold, fontSize: 15, color: "#fff" },
+  cheer: { fontFamily: fonts.display, fontSize: 24 },
   wrap: { flex: 1, width: "100%", maxWidth: 620, alignSelf: "center", gap: 16 },
   bar: { flexDirection: "row", alignItems: "center", gap: 12 },
   meta: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
