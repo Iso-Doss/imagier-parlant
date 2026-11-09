@@ -10,6 +10,8 @@ import { playChime, playRecording, playTick, say, stopSpeaking } from "../audio"
 import { CountdownRing } from "../components/CountdownRing"
 import { BigButton, Picture, SmallButton } from "../components/ui"
 import { NUMBERS, strings } from "../i18n"
+import { hintsFor, matchAnswer } from "../lib/answerMatcher"
+import { listen } from "../speech"
 import type { Settings } from "../settings"
 import { fonts, hardShadow, useTheme } from "../theme"
 
@@ -45,7 +47,14 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
   const verdictRef = useRef<"correct" | "wrong" | null>(null)
   const results = useRef<PlayResult[]>([])
   const [verdict, setVerdict] = useState<"correct" | "wrong" | null>(null)
-  const parentMode = settings.answerMode === "parent"
+  // Micro indisponible pendant la série (refus, pas de reconnaissance) : on passe au mode parent
+  const [fallback, setFallback] = useState(false)
+  const fallbackRef = useRef(false)
+  const voiceMode = settings.answerMode === "voice" && !fallback
+  const parentMode = settings.answerMode === "parent" || (settings.answerMode === "voice" && fallback)
+  const judged = settings.answerMode !== "watch"
+  const [hearing, setHearing] = useState<"listening" | "close">("listening")
+  const volume = useRef(new Animated.Value(0)).current
   const pop = useRef(new Animated.Value(0)).current
   const reveal = useRef(new Animated.Value(0)).current
 
@@ -96,25 +105,34 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     setVerdict(null)
     let shown = settings.delay
     let answeredAt: number | null = null
+    let heardSomething = false
+    const listening = settings.answerMode === "voice" && !fallbackRef.current
+    const stopListening = listening ? startListening(item, () => { heardSomething = true }) : () => {}
     beat(shown)
-    const result = await wait(total, my, (el) => {
-      setElapsed(el)
-      if (verdictRef.current && answeredAt === null) answeredAt = el
-      const left = Math.max(1, Math.ceil((total - el) / 1000))
-      if (left !== shown && el < total) { shown = left; beat(left) }
-    })
+    let result: Awaited<ReturnType<typeof wait>>
+    try {
+      result = await wait(total, my, (el) => {
+        setElapsed(el)
+        if (verdictRef.current && answeredAt === null) answeredAt = el
+        const left = Math.max(1, Math.ceil((total - el) / 1000))
+        if (left !== shown && el < total) { shown = left; beat(left) }
+      })
+    } finally {
+      stopListening()
+    }
 
     // Ce qu'on retient pour les progrès : jamais la voix, seulement le résultat
+    const verdictNow = verdictRef.current as "correct" | "wrong" | null
     const outcome: AnswerResult = result === "skip" ? "skipped"
-      : !parentMode ? "skipped"
-      : (verdictRef.current as "correct" | "wrong" | null) ?? "silent"
+      : !judged ? "skipped"
+      : verdictNow ?? (listening && heardSomething && !fallbackRef.current ? "wrong" : "silent")
     results.current.push({ item_id: item.id, result: outcome, response_ms: outcome === "correct" ? answeredAt : null })
 
     // 3. Answer
     setPhase("answer")
     Animated.timing(reveal, { toValue: 1, duration: 380, easing: Easing.out(Easing.back(1.6)), useNativeDriver: true }).start()
     // Le carillon seulement si c'est trouvé (ou en mode « on regarde ») : jamais de son négatif
-    if (result !== "skip" && (outcome === "correct" || !parentMode)) { playChime(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}) }
+    if (result !== "skip" && (outcome === "correct" || !judged)) { playChime(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}) }
     await sleep(250)
     if (runId.current !== my) throw ABORT
     await speakAnswer(item)
@@ -125,9 +143,37 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     else while (true) { if (runId.current !== my) throw ABORT; if (skipRef.current) { skipRef.current = false; break } await sleep(60) }
   }
 
+  // Écoute pendant le compte à rebours ; s'arrête dès que la réponse est juste.
+  function startListening(item: Item, onAnything: () => void) {
+    const forms = [item.name ?? "", ...(item.aliases ?? [])].filter((f) => f !== "")
+    setHearing("listening")
+    volume.setValue(0)
+    let stop = () => {}
+    stop = listen(language.tts_locale, hintsFor(forms, language.code), {
+      onHeard: (transcripts) => {
+        if (pausedRef.current || verdictRef.current) return
+        onAnything()
+        const match = matchAnswer(transcripts, forms, { lang: language.code, tolerance: settings.tolerance })
+        if (match === "correct") {
+          verdictRef.current = "correct"
+          setVerdict("correct")
+          stop()
+        } else if (match === "close") setHearing("close")
+      },
+      onVolume: (level) => volume.setValue(level),
+      onUnavailable: () => {
+        fallbackRef.current = true
+        setFallback(true)
+      },
+    })
+    return () => stop()
+  }
+
   function beat(n: number) {
-    if (settings.countStyle === "tick") playTick(n === 1)
-    else if (settings.countStyle === "voice") {
+    // Au micro, on ne compte pas à voix haute : la reconnaissance entendrait les chiffres
+    const style = settings.answerMode === "voice" && settings.countStyle === "voice" ? "tick" : settings.countStyle
+    if (style === "tick") playTick(n === 1)
+    else if (style === "voice") {
       const word = NUMBERS[language.code]?.[n] ?? String(n)
       Speech.stop()
       Speech.speak(word, { language: language.tts_locale, rate: 1.1 })
@@ -220,7 +266,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
                 ) : (
                   <Text style={[styles.said, { color: t.leaf }]}>{item.sentence} !</Text>
                 )}
-                {parentMode && verdict === "correct" && <Text style={[styles.cheer, { color: t.leaf }]}>{s.bravo}</Text>}
+                {judged && verdict === "correct" && <Text style={[styles.cheer, { color: t.leaf }]}>{s.bravo}</Text>}
                 {settings.showTranslation && item.translation && (
                   <Text style={[styles.translation, { color: t.muted }]}>{item.translation}</Text>
                 )}
@@ -229,10 +275,18 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
           </View>
         </View>
 
-        {parentMode && phase !== "answer" ? (
+        {voiceMode && phase === "count" ? (
+          <View style={styles.controls}>
+            <MicIndicator volume={volume} label={hearing === "close" ? s.almost : s.listening} />
+            <SmallButton label={`${s.next} →`} onPress={next} />
+          </View>
+        ) : parentMode && phase !== "answer" ? (
+          <View style={{ gap: 8 }}>
+          {fallback && <Text style={[styles.fallback, { color: t.muted }]}>{s.voiceUnavailable}</Text>}
           <View style={styles.controls}>
             <JudgeButton label={s.notYet} icon="✗" color={t.coral} disabled={phase !== "count"} onPress={() => answer("wrong")} />
             <JudgeButton label={s.found} icon="✓" color={t.leaf} disabled={phase !== "count"} onPress={() => answer("correct")} />
+          </View>
           </View>
         ) : (
           <View style={styles.controls}>
@@ -249,6 +303,20 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
           <SmallButton label={s.quit} onPress={quit} />
         </View>
       )}
+    </View>
+  )
+}
+
+/** Micro qui grossit avec la voix : l'enfant voit qu'on l'écoute. */
+function MicIndicator({ volume, label }: { volume: Animated.Value; label: string }) {
+  const t = useTheme()
+  return (
+    <View style={styles.mic} accessibilityLiveRegion="polite" accessibilityLabel={label}>
+      <View style={styles.micWrap}>
+        <Animated.View style={[styles.micHalo, { backgroundColor: t.leaf, opacity: volume.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.5] }), transform: [{ scale: volume.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }] }]} />
+        <View style={[styles.micDot, { borderColor: t.edge, backgroundColor: t.paper }]}><Text style={styles.micIcon}>🎤</Text></View>
+      </View>
+      <Text style={[styles.micLabel, { color: t.ink }]}>{label}</Text>
     </View>
   )
 }
@@ -275,6 +343,13 @@ function JudgeButton({ label, icon, color, onPress, disabled }: { label: string;
 }
 
 const styles = StyleSheet.create({
+  fallback: { fontFamily: fonts.body, fontSize: 14, textAlign: "center" },
+  mic: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64 },
+  micWrap: { width: 60, height: 60, alignItems: "center", justifyContent: "center" },
+  micHalo: { position: "absolute", width: 60, height: 60, borderRadius: 30 },
+  micDot: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, alignItems: "center", justifyContent: "center" },
+  micIcon: { fontSize: 24 },
+  micLabel: { fontFamily: fonts.display, fontSize: 22 },
   judge: { flex: 1, maxWidth: 220, minHeight: 72, borderWidth: 3, borderRadius: 20, alignItems: "center", justifyContent: "center", paddingVertical: 8 },
   judgeIcon: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: "#fff" },
   judgeLabel: { fontFamily: fonts.bodyBold, fontSize: 15, color: "#fff" },

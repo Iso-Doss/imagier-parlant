@@ -39,6 +39,8 @@ export type Item = {
   thumb_url: string | null
   name: string | null
   sentence: string | null
+  /** Autres réponses acceptées au micro */
+  aliases?: string[]
   audio_url: string | null
   translation?: string | null
   category?: { slug: string; name: string | null }

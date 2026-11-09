@@ -39,6 +39,11 @@ const fr = {
   answerMode: "Qui valide la réponse ?",
   modeParent: "Un adulte (✓ / ✗)",
   modeWatch: "Personne, on regarde",
+  modeVoice: "L'enfant, au micro 🎤",
+  voiceNeedsParent: "Un adulte doit d'abord autoriser le micro (cadenas en haut).",
+  voiceUnavailable: "Le micro n'est pas disponible sur cet appareil : un adulte valide avec ✓ / ✗.",
+  listening: "Je t'écoute…",
+  almost: "Presque !",
   guest: "Invité",
   whoPlays: "Qui joue ?",
 }
@@ -82,6 +87,11 @@ const en: typeof fr = {
   answerMode: "Who checks the answer?",
   modeParent: "A grown-up (✓ / ✗)",
   modeWatch: "Nobody, just watch",
+  modeVoice: "The child, out loud 🎤",
+  voiceNeedsParent: "A grown-up must allow the microphone first (padlock at the top).",
+  voiceUnavailable: "The microphone is not available on this device: a grown-up checks with ✓ / ✗.",
+  listening: "I'm listening…",
+  almost: "Almost!",
   guest: "Guest",
   whoPlays: "Who is playing?",
 }

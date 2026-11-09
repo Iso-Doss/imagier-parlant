@@ -111,6 +111,10 @@ jobs:
           cache-dependency-path: mobile/package-lock.json
       - run: npm ci
       - name: Vérification des types
-        run: npx tsc --noEmit
+        run: npm run typecheck
+      - name: Comparaison des réponses (cas partagés)
+        run: npm test
+      - name: Le prototype a la même comparaison que le mobile
+        run: npm run sync:prototype && git diff --exit-code ../prototype/index.html
       - name: Failles connues (npm audit)
         run: npm audit --audit-level=high

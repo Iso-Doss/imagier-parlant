@@ -18,8 +18,12 @@ type Form = {
   category_id: string
   emoji: string
   is_published: boolean
-  t: Record<string, { name: string; sentence: string }>
+  t: Record<string, { name: string; sentence: string; aliases: string }>
 }
+
+const EMPTY = { name: "", sentence: "", aliases: "" }
+
+const splitAliases = (text: string) => text.split(/[,;\n]/).map((a) => a.trim()).filter((a) => a !== "")
 
 export function ItemSheet({ item, defaultCategoryId, open, onOpenChange }: {
   item: Item | null
@@ -40,7 +44,7 @@ export function ItemSheet({ item, defaultCategoryId, open, onOpenChange }: {
     setLastKey(key)
     setForm(item
       ? { category_id: String(item.category_id), emoji: item.emoji ?? "", is_published: item.is_published,
-          t: Object.fromEntries(Object.entries(item.translations).map(([k, v]) => [k, { name: v.name, sentence: v.sentence ?? "" }])) }
+          t: Object.fromEntries(Object.entries(item.translations).map(([k, v]) => [k, { name: v.name, sentence: v.sentence ?? "", aliases: (v.aliases ?? []).join(", ") }])) }
       : { category_id: defaultCategoryId ? String(defaultCategoryId) : "", emoji: "", is_published: true, t: {} })
     setImage(null)
     setAudio({})
@@ -55,10 +59,10 @@ export function ItemSheet({ item, defaultCategoryId, open, onOpenChange }: {
 
   const save = useMutation({
     mutationFn: async () => {
-      const translations: Record<string, { name: string; sentence: string | null } | null> = {}
+      const translations: Record<string, { name: string; sentence: string | null; aliases: string[] } | null> = {}
       for (const l of languages) {
         const v = form.t[l.code]
-        if (v?.name.trim()) translations[l.code] = { name: v.name.trim(), sentence: v.sentence.trim() || null }
+        if (v?.name.trim()) translations[l.code] = { name: v.name.trim(), sentence: v.sentence.trim() || null, aliases: splitAliases(v.aliases) }
         else if (item?.translations[l.code]) translations[l.code] = null
       }
       const body = { category_id: Number(form.category_id), emoji: form.emoji || null, is_published: form.is_published, translations }
@@ -84,8 +88,8 @@ export function ItemSheet({ item, defaultCategoryId, open, onOpenChange }: {
     onSuccess: () => { refresh(); toast.success("Fichier supprimé") },
   })
 
-  const setT = (code: string, field: "name" | "sentence", value: string) =>
-    setForm({ ...form, t: { ...form.t, [code]: { ...(form.t[code] ?? { name: "", sentence: "" }), [field]: value } } })
+  const setT = (code: string, field: "name" | "sentence" | "aliases", value: string) =>
+    setForm({ ...form, t: { ...form.t, [code]: { ...(form.t[code] ?? EMPTY), [field]: value } } })
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -120,7 +124,7 @@ export function ItemSheet({ item, defaultCategoryId, open, onOpenChange }: {
           </div>
 
           {languages.map((l) => {
-            const v = form.t[l.code] ?? { name: "", sentence: "" }
+            const v = form.t[l.code] ?? EMPTY
             const said = v.sentence.trim() || (v.name.trim() ? l.answer_template.replace(":name", v.name.trim()) : "")
             const err = error?.field(`translations.${l.code}.name`)
             return (
@@ -143,6 +147,19 @@ export function ItemSheet({ item, defaultCategoryId, open, onOpenChange }: {
                   <p className="text-xs text-muted-foreground">
                     À remplir seulement si la phrase automatique ne convient pas, par exemple au pluriel : « Ce sont des ciseaux ».
                   </p>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`aliases-${l.code}`}>Autres réponses acceptées (facultatif)</Label>
+                  <Input id={`aliases-${l.code}`} value={v.aliases} onChange={(e) => setT(l.code, "aliases", e.target.value)}
+                    placeholder={l.code === "fr" ? "une auto, une bagnole" : l.code === "en" ? "an automobile" : ""}
+                    aria-invalid={!!error?.field(`translations.${l.code}.aliases`)} />
+                  <p className="text-xs text-muted-foreground">
+                    Séparées par des virgules, 10 au plus. Inutile d'ajouter le nom sans article, le pluriel ou les
+                    petites erreurs de prononciation : ils sont déjà acceptés quand l'enfant répond au micro.
+                  </p>
+                  {error?.field(`translations.${l.code}.aliases`) && (
+                    <p className="text-xs font-semibold text-destructive">{error.field(`translations.${l.code}.aliases`)}</p>
+                  )}
                 </div>
                 <div className="grid gap-1.5">
                   <Label>Prononciation</Label>

@@ -1,9 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useEffect, useState } from "react"
+import type { Tolerance } from "./lib/answerMatcher"
 
 export type CountStyle = "tick" | "voice" | "silent"
-/** Comment l'enfant répond : le parent valide ✓/✗, ou on regarde seulement (comme la vidéo) */
-export type AnswerMode = "parent" | "watch"
+/** Comment l'enfant répond : au micro, le parent valide ✓/✗, ou on regarde seulement (comme la vidéo) */
+export type AnswerMode = "voice" | "parent" | "watch"
 export type Settings = {
   lang: string
   categories: string[]
@@ -14,6 +15,8 @@ export type Settings = {
   showTranslation: boolean
   autoNext: boolean
   answerMode: AnswerMode
+  /** Sévérité de la comparaison au micro */
+  tolerance: Tolerance
 }
 
 export const DEFAULTS: Settings = {
@@ -26,6 +29,7 @@ export const DEFAULTS: Settings = {
   showTranslation: false,
   autoNext: true,
   answerMode: "watch",
+  tolerance: "normal",
 }
 
 const KEY = "imagier-settings-v1"

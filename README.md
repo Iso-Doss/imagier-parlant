@@ -117,6 +117,12 @@ On y crée un compte (e-mail + code à 6 chiffres), des profils enfant (surnom, 
 les progrès. En développement, l'e-mail part dans `api/storage/logs/laravel.log` (`MAIL_MAILER=log`) :
 le code s'y lit directement. Sans compte, l'app fonctionne en invité et rien ne quitte le téléphone.
 
+Mode « L'enfant, au micro » : l'enfant dit le nom pendant le compte à rebours et l'app dit
+« Bravo » dès que c'est juste. Le micro s'autorise dans l'espace parent (avec la sévérité :
+stricte, normale, indulgente). La voix reste sur le téléphone : seul le résultat est gardé.
+**Le micro ne marche pas dans Expo Go** : il faut un build de développement
+(`npx expo run:ios` ou `npx expo run:android`). Dans Expo Go, l'app passe d'elle-même au mode ✓ / ✗.
+
 Mode « Un adulte (✓ / ✗) » : pendant le compte à rebours, l'adulte indique si l'enfant a trouvé.
 Avec un profil, la série est envoyée au compte (ou gardée sur le téléphone jusqu'au retour du réseau),
 et les objets ratés reviennent dans les séries suivantes.
@@ -134,7 +140,7 @@ Langue : `?lang=fr` ou l'en-tête `Accept-Language`.
 | GET | `/categories/{slug}` | Une catégorie et ses objets |
 | GET | `/series?categories=fruits,animaux&count=10&translation=en` | Série mélangée de 1 à 100 images. Sans `categories`, tout est mélangé. Les objets se répètent si besoin, jamais deux fois de suite |
 
-Chaque objet renvoie `emoji`, `image_url` (+ `card_url`, `thumb_url`), `name` (« une pomme »),
+Chaque objet renvoie `emoji`, `image_url` (+ `card_url`, `thumb_url`), `name` (« une pomme »), `aliases`,
 `sentence` (« C'est une pomme ») et `audio_url` (prononciation enregistrée, ou `null` → l'app
 utilise la synthèse vocale).
 
@@ -159,7 +165,8 @@ puis avec le jeton : `/me`, `/me/profiles`, `/me/profiles/{id}/sessions`, `/me/p
 | POST / DELETE | `/admin/items/{id}/image` | multipart `image` (JPEG, PNG, WebP ≤ 10 Mo) |
 | POST / DELETE | `/admin/items/{id}/audio/{langue}` | multipart `audio` (mp3, m4a, wav, ogg, webm) |
 
-Contenu d'un objet : `{category_id, emoji, is_published, translations: {fr: {name, sentence?}, en: {...}, de: null}}` —
+Contenu d'un objet : `{category_id, emoji, is_published, translations: {fr: {name, sentence?, aliases?}, en: {...}, de: null}}` —
 `null` supprime une traduction. `sentence` ne sert que si la phrase de la langue ne convient pas (pluriels).
+`aliases` : autres réponses acceptées au micro (« une auto » pour « une voiture »), 10 au plus.
 
 Les messages d'erreur sont en français (`api/lang/fr`) ; sur les routes publiques, ils suivent la langue demandée.

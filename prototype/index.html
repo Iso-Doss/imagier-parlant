@@ -114,6 +114,10 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance}
 .ring .bg{stroke:var(--track)}
 .ring .fg{stroke:var(--coral);stroke-linecap:round}
 .ring .num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:2.2rem;font-variant-numeric:tabular-nums}
+.mic{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:1.2rem}
+.mic .dot{width:46px;height:46px;border-radius:50%;border:3px solid var(--edge);background:var(--paper);display:grid;place-items:center;font-size:1.3rem;transition:transform .12s ease-out,box-shadow .12s ease-out}
+.mic.live .dot{box-shadow:0 0 0 6px color-mix(in srgb,var(--leaf) 35%,transparent)}
+.answer .cheer{font-family:var(--display);font-weight:800;color:var(--leaf);font-size:1.4rem}
 .answer{display:flex;flex-direction:column;align-items:center;gap:2px}
 .answer .word{font-family:var(--display);font-weight:800;font-size:clamp(2.2rem,10vw,3.6rem);line-height:1;animation:rise .45s ease-out}
 .answer .word .art{color:var(--muted);font-weight:700;font-size:.55em;margin-right:.25em}
@@ -170,6 +174,8 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance}
         <button class="switch" id="sw-trans" role="switch"></button></div>
       <div class="row"><div class="txt"><b data-t="autoNext"></b><span data-t="autoNextHint"></span></div>
         <button class="switch" id="sw-auto" role="switch"></button></div>
+      <div class="row" id="micRow" hidden><div class="txt"><b data-t="mic"></b><span data-t="micHint"></span></div>
+        <button class="switch" id="sw-mic" role="switch"></button></div>
       <p class="note" id="voiceNote"></p>
     </div>
   </section>
@@ -210,6 +216,183 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance}
 </div>
 
 <script>
+// <answer-matcher> — copie générée de mobile/src/lib/answerMatcher.ts, ne pas modifier ici
+// Compare ce que l'enfant a dit avec le nom attendu.
+// Même algorithme que api/app/Services/AnswerMatcher.php et le prototype web :
+// les trois sont testés sur shared/answer-cases.json.
+const PHRASES = {
+    fr: ["est ce que c est", "est ce que", "c est", "ce sont", "ca c est", "ca", "voila", "je crois que", "je pense que", "il y a"],
+    en: ["is it", "it is", "it s", "its", "this is", "that is", "that s", "thats", "i think", "there is", "there s"],
+};
+const WORDS = {
+    fr: ["le", "la", "les", "l", "un", "une", "des", "du", "de", "d", "au", "aux", "mon", "ma", "mes", "ton", "ta", "tes",
+        "son", "sa", "ses", "ce", "cet", "cette", "ces", "euh", "heu", "hum", "bah", "ben", "oh", "ah", "et"],
+    en: ["the", "a", "an", "my", "your", "this", "that", "some", "um", "uh", "er", "oh", "ah", "and"],
+};
+function normalize(text, lang) {
+    const base = lang.slice(0, 2).toLowerCase();
+    let s = ` ${text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")} `;
+    s = s.replace(/œ/g, "oe").replace(/æ/g, "ae");
+    s = s.replace(/[^a-z0-9]+/g, " ");
+    for (const phrase of PHRASES[base] ?? []) {
+        s = s.split(` ${phrase} `).join(" ");
+    }
+    const skip = new Set(WORDS[base] ?? []);
+    const words = s.split(" ").filter((w) => w !== "");
+    // Un article n'est retiré que s'il est suivi d'un autre mot (« un dé » garde « de »).
+    return words.filter((w, i) => !skip.has(w) || (i === words.length - 1 && !words.slice(0, i).some((x) => !skip.has(x)))).join(" ");
+}
+function levenshtein(a, b) {
+    if (a === b)
+        return 0;
+    if (a.length === 0)
+        return b.length;
+    if (b.length === 0)
+        return a.length;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+        const cur = [i];
+        for (let j = 1; j <= b.length; j++) {
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        }
+        prev = cur;
+    }
+    return prev[b.length];
+}
+function replaceAll(s, rules) {
+    for (const [re, to] of rules)
+        s = s.replace(re, to);
+    return s;
+}
+const FR_RULES = [
+    [/ph/g, "f"],
+    [/sch|ch|sh/g, "S"],
+    [/h/g, ""],
+    [/eaux?/g, "o"],
+    [/au/g, "o"],
+    [/qu/g, "k"],
+    [/q/g, "k"],
+    [/gu([eiy])/g, "g$1"],
+    [/ge([aou])/g, "j$1"],
+    [/g([eiy])/g, "j$1"],
+    [/c([eiy])/g, "s$1"],
+    [/c/g, "k"],
+    [/gn/g, "N"],
+    [/ou/g, "U"],
+    [/oi/g, "WA"],
+    [/(ai|ei)n(?![aeiouy])/g, "E"],
+    [/(ai|ei)m(?![aeiouy])/g, "E"],
+    [/[ae]n(?![aeiouyn])|[ae]m(?![aeiouym])/g, "A"],
+    [/on(?![aeiouyn])|om(?![aeiouym])/g, "O"],
+    [/(in|yn|un)(?![aeiouyn])|(im|ym|um)(?![aeiouym])/g, "E"],
+    [/ai|ei/g, "E"],
+    [/(er|et)$/g, "E"],
+    [/y/g, "i"],
+    [/w/g, "v"],
+    [/x$/g, ""],
+    [/([aeiouAEOUi])s(?=[aeiouAEOUi])/g, "$1z"],
+    [/(.)\1+/g, "$1"],
+    [/[sxtdpe]+$/g, ""],
+    [/S/g, "s"],
+    [/E/g, "e"],
+];
+const EN_RULES = [
+    [/^kn/g, "n"],
+    [/^wr/g, "r"],
+    [/^ps/g, "s"],
+    [/mb$/g, "m"],
+    [/ph/g, "f"],
+    [/aw|au/g, "o"],
+    [/gh(?![aeiou])/g, ""],
+    [/ck/g, "k"],
+    [/sch/g, "sk"],
+    [/tch|ch|sh/g, "S"],
+    [/th/g, "0"],
+    [/dg/g, "j"],
+    [/c([eiy])/g, "s$1"],
+    [/c|q/g, "k"],
+    [/g([eiy])/g, "j$1"],
+    [/x/g, "ks"],
+    [/z/g, "s"],
+    [/ee|ea/g, "i"],
+    [/oo/g, "u"],
+    [/y/g, "i"],
+    [/([^aeiou])h/g, "$1"],
+    [/(.)\1+/g, "$1"],
+    [/(e?s)$/g, ""],
+    [/(.)e$/g, "$1"],
+];
+function phonetic(word, lang) {
+    const rules = lang.slice(0, 2).toLowerCase() === "en" ? EN_RULES : FR_RULES;
+    return replaceAll(word.replace(/ /g, ""), rules);
+}
+// Une autre première lettre change souvent le mot (« gâteau » / « bateau ») : 2 points de plus.
+// Sauf si l'enfant a avalé le début (« apin » / « lapin ») ou fait une substitution courante
+// (« zirafe », « sien », « kitare », « wabbit »).
+const SOFT_FIRST = new Set(["zg", "zj", "sc", "kg", "kc", "ck", "wr", "fp"]);
+function firstLetterPenalty(heard, target) {
+    if (heard[0] === target[0] || SOFT_FIRST.has(heard[0] + target[0]))
+        return 0;
+    if (heard.length < target.length && target.slice(1, 3).includes(heard[0]))
+        return 0;
+    return 2;
+}
+function threshold(form, tolerance) {
+    if (tolerance === "strict")
+        return 0;
+    const len = form.replace(/ /g, "").length;
+    const base = len <= 3 ? 0 : len <= 5 ? 1 : 2;
+    return tolerance === "lenient" ? base + 1 : base;
+}
+// Les morceaux de la phrase dite (mots collés) qui peuvent correspondre à une forme de n mots.
+function windows(heard, size) {
+    const out = [];
+    for (let n = 1; n <= Math.min(size + 1, heard.length); n++) {
+        for (let i = 0; i + n <= heard.length; i++)
+            out.push(heard.slice(i, i + n).join(""));
+    }
+    return out;
+}
+// `heard` : une ou plusieurs transcriptions proposées par la reconnaissance vocale.
+// `forms` : le nom attendu et ses variantes acceptées.
+function matchAnswer(heard, forms, options) {
+    const tolerance = options.tolerance ?? "normal";
+    const lang = options.lang;
+    const candidates = (Array.isArray(heard) ? heard : [heard]).map((h) => normalize(h, lang)).filter((h) => h !== "");
+    const targets = [...new Set(forms.map((f) => normalize(f, lang)).filter((f) => f !== ""))];
+    let close = false;
+    for (const target of targets) {
+        const compact = target.replace(/ /g, "");
+        const limit = threshold(target, tolerance);
+        const key = phonetic(compact, lang);
+        for (const candidate of candidates) {
+            for (const piece of windows(candidate.split(" "), target.split(" ").length)) {
+                if (piece === compact)
+                    return "correct";
+                if (tolerance === "strict")
+                    continue;
+                const distance = levenshtein(piece, compact) + firstLetterPenalty(piece, compact);
+                const sound = phonetic(piece, lang);
+                if (key.length >= 2 && sound === key)
+                    return "correct";
+                // Au-delà d'une lettre d'écart, il faut aussi que les deux mots sonnent presque pareil.
+                if (distance <= Math.min(limit, 1))
+                    return "correct";
+                if (distance <= limit && levenshtein(sound, key) <= (tolerance === "lenient" ? 2 : 1))
+                    return "correct";
+                if (distance <= limit + 1 && distance / compact.length <= 0.34)
+                    close = true;
+            }
+        }
+    }
+    return close ? "close" : "wrong";
+}
+// Mots à donner à la reconnaissance vocale pour l'aider (nom sans article et variantes).
+function hintsFor(forms, lang) {
+    return [...new Set(forms.flatMap((f) => [f, normalize(f, lang)]).filter((f) => f !== ""))];
+}
+// </answer-matcher>
+
 // ---------- Data (exemples pour le prototype : les emoji remplacent les photos) ----------
 // fr / en = nom avec article ; frS / enS = phrase complète quand "C'est … / It's …" ne marche pas (pluriels)
 const CATS = [
@@ -272,6 +455,8 @@ const T = {
   tick:"Tic-tac", voice:"Voix", silent:"Muet",
   showWord:"Écrire le nom", showWordHint:"Affiche le mot sous l'image.", showTrans:"Montrer la traduction", showTransHint:"Affiche aussi le mot en anglais.",
   autoNext:"Image suivante automatique", autoNextHint:"Sinon, appuie sur « Suivant ».",
+  mic:"Répondre au micro", micHint:"L'enfant dit le nom à voix haute. Dans le navigateur, la voix peut passer par le service de Google ou d'Apple : à n'utiliser que pour essayer.",
+  listening:"Je t'écoute…", almost:"Presque !", micNo:"Le micro est refusé ou indisponible : la réponse sera dite sans vérification.",
   start:n=>`Commencer · ${n} images`, pick:"Choisis au moins une catégorie", objects:n=>`${n} objets`,
   question:"Qu'est-ce que c'est ?", sentence:it=>it.frS || `C'est ${it.fr}`, word:it=>it.fr, other:it=>it.en, otherFlag:"EN",
   repeat:"Répéter", next:"Suivant", answer:"Réponse", paused:"Pause", resume:"Reprendre",
@@ -284,6 +469,8 @@ const T = {
   tick:"Tick-tock", voice:"Voice", silent:"Silent",
   showWord:"Write the word", showWordHint:"Shows the word under the picture.", showTrans:"Show translation", showTransHint:"Also shows the word in French.",
   autoNext:"Next picture automatically", autoNextHint:"Otherwise, tap “Next”.",
+  mic:"Answer out loud", micHint:"The child says the name out loud. In the browser, the voice may go through Google's or Apple's service: use it only to try things out.",
+  listening:"I'm listening…", almost:"Almost!", micNo:"The microphone is blocked or unavailable: the answer will be said without checking.",
   start:n=>`Start · ${n} pictures`, pick:"Pick at least one category", objects:n=>`${n} objects`,
   question:"What is this?", sentence:it=>it.enS || `It's ${it.en}`, word:it=>it.en, other:it=>it.fr, otherFlag:"FR",
   repeat:"Repeat", next:"Next", answer:"Answer", paused:"Paused", resume:"Resume",
@@ -294,7 +481,7 @@ const T = {
 const NUMS = {fr:["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix"], en:["zero","one","two","three","four","five","six","seven","eight","nine","ten"]};
 
 // ---------- Réglages (gardés sur cet appareil) ----------
-const DEF = {lang:"fr", cats:["fruits","animaux","maison"], len:10, delay:5, count:"tick", word:true, trans:false, auto:true};
+const DEF = {lang:"fr", cats:["fruits","animaux","maison"], len:10, delay:5, count:"tick", word:true, trans:false, auto:true, mic:false};
 let S = {...DEF};
 try{ const saved = JSON.parse(localStorage.getItem("imagier-settings")||"null"); if(saved) S = {...DEF, ...saved}; }catch(e){}
 const save = ()=>{ try{ localStorage.setItem("imagier-settings", JSON.stringify(S)); }catch(e){} };
@@ -354,7 +541,8 @@ function renderHome(){
   chips("lenChips", [10,20,50,100], S.len, v=>v, v=>{S.len=v;});
   chips("delayChips", [3,5,8,10], S.delay, v=>`${v} s`, v=>{S.delay=v;});
   chips("countChips", ["tick","voice","silent"], S.count, v=>t(v), v=>{S.count=v;});
-  sw("sw-word","word"); sw("sw-trans","trans"); sw("sw-auto","auto");
+  sw("sw-word","word"); sw("sw-trans","trans"); sw("sw-auto","auto"); sw("sw-mic","mic");
+  $("micRow").hidden = !SR;
   const b = $("start"); b.disabled = !S.cats.length; b.textContent = S.cats.length ? t("start")(S.len) : t("pick");
   renderVoiceNote();
 }
@@ -376,6 +564,29 @@ function buildQueue(){
   return q.slice(0,S.len);
 }
 let queue=[], idx=0, runId=0, paused=false, skipReq=false, phase="", wakeLock=null;
+// ---------- Écoute de la réponse (Web Speech API) ----------
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let found=false;
+function startListening(it, onClose){
+  if(!S.mic || !SR) return ()=>{};
+  const forms = [T[S.lang].word(it)];
+  let rec, stopped=false;
+  try{ rec = new SR(); }catch(e){ return ()=>{}; }
+  rec.lang = S.lang==="fr" ? "fr-FR" : "en-US";
+  rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 5;
+  rec.onresult = e=>{
+    if(stopped || paused || found) return;
+    const heard = [];
+    for(let i=e.resultIndex; i<e.results.length; i++) for(let j=0; j<e.results[i].length; j++) heard.push(e.results[i][j].transcript);
+    const r = matchAnswer(heard, forms, {lang:S.lang, tolerance:"normal"});
+    if(r==="correct"){ found=true; stop(); } else if(r==="close") onClose();
+  };
+  rec.onerror = e=>{ if(e.error==="not-allowed" || e.error==="service-not-allowed" || e.error==="audio-capture"){ S.mic=false; save(); $("micState") && ($("micState").textContent=t("micNo")); } };
+  rec.onend = ()=>{ if(!stopped && !found && phase==="count"){ try{ rec.start(); }catch(e){} } };
+  try{ rec.start(); }catch(e){}
+  function stop(){ if(stopped) return; stopped=true; try{ rec.abort(); }catch(e){} }
+  return stop;
+}
 const ABORT = Symbol("abort");
 const sleep = ms=>new Promise(r=>setTimeout(r,ms));
 async function wait(ms, my, onFrame){
@@ -383,6 +594,7 @@ async function wait(ms, my, onFrame){
   while(el<ms){
     if(my!==runId) throw ABORT;
     if(skipReq){ skipReq=false; return "skip"; }
+    if(found) return "found";
     await sleep(40); const now=performance.now();
     if(!paused) el += now-last; last=now;
     onFrame && onFrame(Math.min(el,ms));
@@ -432,12 +644,19 @@ async function playItem(it, my){
   phase="count";
   const total=S.delay*1000, C=2*Math.PI*36;
   $("stage").innerHTML = `<div class="timer"><div class="ring"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="36"/><circle class="fg" id="arc" cx="42" cy="42" r="36" stroke-dasharray="${C}" stroke-dashoffset="0"/></svg><div class="num" id="num">${S.delay}</div></div></div>`;
+  found=false;
+  const listening = S.mic && !!SR;
+  if(listening) $("stage").insertAdjacentHTML("beforeend", `<div class="mic live" id="micBox"><span class="dot">🎤</span><span id="micState">${t("listening")}</span></div>`);
+  const stopListening = startListening(it, ()=>{ const m=$("micState"); if(m) m.textContent=t("almost"); });
   let shown=S.delay; countBeat(shown);
-  const res = await wait(total, my, el=>{
-    const arc=$("arc"); if(arc) arc.setAttribute("stroke-dashoffset", (C*el/total).toFixed(1));
-    const left = Math.max(1, Math.ceil((total-el)/1000));
-    if(left!==shown && el<total){ shown=left; $("num").textContent=left; countBeat(left); }
-  });
+  let res;
+  try{
+    res = await wait(total, my, el=>{
+      const arc=$("arc"); if(arc) arc.setAttribute("stroke-dashoffset", (C*el/total).toFixed(1));
+      const left = Math.max(1, Math.ceil((total-el)/1000));
+      if(left!==shown && el<total){ shown=left; $("num").textContent=left; countBeat(left); }
+    });
+  } finally { stopListening(); }
 
   // 3. la réponse
   phase="answer";
@@ -447,9 +666,11 @@ async function playItem(it, my){
   const wordHtml = m ? `<span class="art">${m[1].trim()}</span>${m[2]}` : word;
   $("stage").innerHTML = `<div class="answer">
       ${S.word ? `<div class="word">${wordHtml}</div>` : `<div class="said">${L.sentence(it)} !</div>`}
+      ${res==="found" ? `<div class="cheer">${t("bravo")}</div>` : ""}
       ${S.trans ? `<div class="trans"><span class="flag">${L.otherFlag}</span>${L.other(it)}</div>` : ""}
     </div>`;
-  if(res!=="skip") chime();
+  // Au micro, le carillon seulement si c'est trouvé : jamais de son négatif
+  if(res!=="skip" && (!listening || res==="found")) chime();
   await sleep(250);
   if(my!==runId) throw ABORT;
   await speak(L.sentence(it));
@@ -462,8 +683,10 @@ async function playItem(it, my){
   else { while(true){ if(my!==runId) throw ABORT; if(skipReq){ skipReq=false; break; } await sleep(60); } }
 }
 function countBeat(n){
-  if(S.count==="tick") tick(n===1);
-  else if(S.count==="voice"){ const w=NUMS[S.lang][n]; if(synth && w){ const u=new SpeechSynthesisUtterance(w); const v=pickVoice(); if(v) u.voice=v; u.lang=S.lang==="fr"?"fr-FR":"en-US"; u.rate=1.1; synth.cancel(); synth.speak(u); } }
+  // Au micro, pas de chiffres dits : la reconnaissance les entendrait
+  const style = S.mic && SR && S.count==="voice" ? "tick" : S.count;
+  if(style==="tick") tick(n===1);
+  else if(style==="voice"){ const w=NUMS[S.lang][n]; if(synth && w){ const u=new SpeechSynthesisUtterance(w); const v=pickVoice(); if(v) u.voice=v; u.lang=S.lang==="fr"?"fr-FR":"en-US"; u.rate=1.1; synth.cancel(); synth.speak(u); } }
 }
 function finish(){
   stopRun();

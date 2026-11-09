@@ -2,12 +2,20 @@ import { useEffect, useState } from "react"
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { AGE_BANDS, AVATARS, ApiError, DELAY_FOR_AGE, useAccount, type Profile, type Progress } from "../account"
-import { BigButton, Picture, SmallButton } from "../components/ui"
+import { BigButton, Chip, Picture, SmallButton } from "../components/ui"
 import { parentStrings, type ParentStrings } from "../i18n-parent"
+import type { Tolerance } from "../lib/answerMatcher"
+import type { Settings } from "../settings"
+import { micPermission, onDeviceSupported, requestMicPermission, type MicPermission } from "../speech"
 import { fonts, hardShadow, useTheme } from "../theme"
 
 /** Espace parent (derrière le portail) : compte, profils enfant, progrès. */
-export function ParentScreen({ lang, onClose }: { lang: string; onClose: () => void }) {
+export function ParentScreen({ lang, settings, update, onClose }: {
+  lang: string
+  settings: Settings
+  update: (p: Partial<Settings>) => void
+  onClose: () => void
+}) {
   const t = useTheme()
   const p = parentStrings(lang)
   const insets = useSafeAreaInsets()
@@ -20,10 +28,60 @@ export function ParentScreen({ lang, onClose }: { lang: string; onClose: () => v
           <SmallButton icon="←" label={p.back} onPress={onClose} />
           <Text style={[styles.title, { color: t.ink }]}>{p.parentArea}</Text>
         </View>
+        <MicCard p={p} settings={settings} update={update} />
         {account ? <Signed p={p} lang={lang} /> : <AuthFlow p={p} lang={lang} />}
         <Text style={[styles.note, { color: t.muted }]}>🔒 {p.privacy}</Text>
       </ScrollView>
     </View>
+  )
+}
+
+// ---------------------------------------------------------------- Micro
+
+/** Le parent autorise le micro ici, après l'explication (jamais pendant le jeu). */
+function MicCard({ p, settings, update }: { p: ParentStrings; settings: Settings; update: (patch: Partial<Settings>) => void }) {
+  const t = useTheme()
+  const [permission, setPermission] = useState<MicPermission | null>(null)
+  useEffect(() => { micPermission().then(setPermission) }, [])
+
+  const allow = async () => {
+    const result = await requestMicPermission()
+    setPermission(result)
+    if (result === "granted") update({ answerMode: "voice" })
+  }
+  const levels: [Tolerance, string][] = [["strict", p.toleranceStrict], ["normal", p.toleranceNormal], ["lenient", p.toleranceLenient]]
+
+  return (
+    <Card>
+      <Text style={[styles.h2, { color: t.ink }]}>🎤 {p.mic}</Text>
+      <Text style={[styles.text, { color: t.muted }]}>{p.micText}</Text>
+      {permission === null && <ActivityIndicator color={t.ink} />}
+      {permission === "unavailable" && <Text style={[styles.small, { color: t.ink }]}>{p.micUnavailable}</Text>}
+      {permission === "denied" && <Text style={[styles.small, { color: t.coral }]}>{p.micDenied}</Text>}
+      {permission === "undetermined" && <BigButton label={p.micAllow} onPress={allow} />}
+      {permission === "granted" && (
+        <>
+          <Text style={[styles.small, { color: t.leaf }]}>✓ {p.micGranted}</Text>
+          {settings.answerMode === "voice"
+            ? <Text style={[styles.small, { color: t.ink }]}>{p.micInUse}</Text>
+            : <SmallButton label={p.micUse} onPress={() => update({ answerMode: "voice" })} primary />}
+        </>
+      )}
+      {permission !== null && permission !== "unavailable" && !onDeviceSupported() && (
+        <Text style={[styles.small, { color: t.muted }]}>{p.micCloud}</Text>
+      )}
+      {permission === "granted" && (
+        <View style={{ gap: 8 }}>
+          <Text style={[styles.label, { color: t.ink }]}>{p.tolerance}</Text>
+          <View style={styles.row}>
+            {levels.map(([level, label]) => (
+              <Chip key={level} label={label} selected={settings.tolerance === level} onPress={() => update({ tolerance: level })} />
+            ))}
+          </View>
+          <Text style={[styles.small, { color: t.muted }]}>{p.toleranceHelp}</Text>
+        </View>
+      )}
+    </Card>
   )
 }
 

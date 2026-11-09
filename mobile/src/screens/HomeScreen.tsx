@@ -5,6 +5,7 @@ import { AVATARS, useAccount } from "../account"
 import { fetchCategories, fetchLanguages, type Category, type Language } from "../api"
 import { BigButton, Chip, Picture, Toggle } from "../components/ui"
 import { strings } from "../i18n"
+import { micPermission } from "../speech"
 import type { AnswerMode, CountStyle, Settings } from "../settings"
 import { fonts, hardShadow, tintFor, useTheme } from "../theme"
 
@@ -26,6 +27,18 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const [languages, setLanguages] = useState<Language[]>([])
   const [categories, setCategories] = useState<Category[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [voiceNote, setVoiceNote] = useState<string | null>(null)
+
+  // Le micro ne s'active qu'après l'accord d'un adulte, dans l'espace parent.
+  const chooseMode = async (m: AnswerMode) => {
+    setVoiceNote(null)
+    if (m !== "voice") return update({ answerMode: m })
+    const permission = await micPermission()
+    if (permission === "granted") return update({ answerMode: "voice" })
+    if (permission === "unavailable") return setVoiceNote(s.voiceUnavailable)
+    setVoiceNote(s.voiceNeedsParent)
+    onParent()
+  }
 
   const load = useCallback(async () => {
     setError(null)
@@ -160,10 +173,11 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
             ))}
           </Setting>
           <Setting label={s.answerMode}>
-            {(["parent", "watch"] as AnswerMode[]).map((m) => (
-              <Chip key={m} label={m === "parent" ? s.modeParent : s.modeWatch} selected={settings.answerMode === m} onPress={() => update({ answerMode: m })} />
+            {(["voice", "parent", "watch"] as AnswerMode[]).map((m) => (
+              <Chip key={m} label={m === "voice" ? s.modeVoice : m === "parent" ? s.modeParent : s.modeWatch} selected={settings.answerMode === m} onPress={() => chooseMode(m)} />
             ))}
           </Setting>
+          {voiceNote && <Text style={{ fontFamily: fonts.body, fontSize: 14, color: t.muted }}>{voiceNote}</Text>}
           <Toggle label={s.showWord} value={settings.showWord} onChange={(v) => update({ showWord: v })} />
           {languages.length > 1 && <Toggle label={s.showTranslation} value={settings.showTranslation} onChange={(v) => update({ showTranslation: v })} />}
           <Toggle label={s.autoNext} value={settings.autoNext} onChange={(v) => update({ autoNext: v })} />
