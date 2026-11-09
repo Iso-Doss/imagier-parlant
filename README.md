@@ -105,7 +105,7 @@ L'app joint l'API sur l'ordinateur qui lance Expo, port 8000, et les médias sur
 (port 8333 pour le S3 local). `EXPO_PUBLIC_API_URL` dans `mobile/.env` permet de viser une API déployée.
 Pour le simulateur iOS, accepter d'abord la licence Xcode (`sudo xcodebuild -license`).
 
-Déroulé : langue et catégories → série de 10/20/50/100 → image + question dite →
+Déroulé : étape ① langue et catégories → étape ② série de 10/20/50/100 et réglages → image + question dite →
 compte à rebours (tic-tac, chiffres dits ou silence) → carillon, nom écrit et dit (enregistrement
 de l'admin s'il existe, sinon voix du téléphone) → suivant. Pause, réécouter, passer ;
 l'écran reste allumé pendant une série et se met en pause si l'app passe en arrière-plan.

@@ -46,6 +46,9 @@ const fr = {
   almost: "Presque !",
   guest: "Invité",
   whoPlays: "Qui joue ?",
+  nextStep: "Suivant",
+  stepCats: "Catégories",
+  catsChosen: (n: number) => `${n} catégorie${n > 1 ? "s" : ""}`,
 }
 const en: typeof fr = {
   tagline: "One picture, one question, one word.",
@@ -94,6 +97,9 @@ const en: typeof fr = {
   almost: "Almost!",
   guest: "Guest",
   whoPlays: "Who is playing?",
+  nextStep: "Next",
+  stepCats: "Categories",
+  catsChosen: (n) => `${n} categor${n > 1 ? "ies" : "y"}`,
 }
 export type Strings = typeof fr
 export const strings = (lang: string): Strings => (lang === "fr" ? fr : en)

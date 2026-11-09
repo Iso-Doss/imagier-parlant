@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react"
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { ActivityIndicator, Animated, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { AVATARS, useAccount } from "../account"
 import { fetchCategories, fetchLanguages, type Category, type Language } from "../api"
@@ -28,6 +28,17 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const [categories, setCategories] = useState<Category[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [voiceNote, setVoiceNote] = useState<string | null>(null)
+  // Deux étapes : 1. les catégories, 2. la série
+  const [step, setStep] = useState<1 | 2>(1)
+  const fade = useRef(new Animated.Value(1)).current
+  const scroll = useRef<ScrollViewInstance>(null)
+  const goTo = (next: 1 | 2) => {
+    if (next === step) return
+    setStep(next)
+    scroll.current?.scrollTo({ y: 0, animated: false })
+    fade.setValue(0)
+    Animated.timing(fade, { toValue: 1, duration: 220, useNativeDriver: true }).start()
+  }
 
   // Le micro ne s'active qu'après l'accord d'un adulte, dans l'espace parent.
   const chooseMode = async (m: AnswerMode) => {
@@ -69,7 +80,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
 
   return (
     <View style={{ flex: 1, backgroundColor: t.sky }}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 120 }]}>
+      <ScrollView ref={scroll} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 120 }]}>
         <View style={styles.header}>
           <View style={styles.brand}>
             <View style={[styles.logo, { backgroundColor: t.sun, borderColor: t.edge }, hardShadow(t.drop, 3)]}>
@@ -85,6 +96,28 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
             <Text style={{ fontSize: 20 }}>🔒</Text>
           </Pressable>
         </View>
+
+        <View style={styles.steps} accessibilityRole="tablist">
+          {([1, 2] as const).map((n) => {
+            const active = step === n
+            const reachable = n === 1 || settings.categories.length > 0
+            return (
+              <Pressable key={n} onPress={() => reachable && goTo(n)} disabled={!reachable} accessibilityRole="tab"
+                accessibilityState={{ selected: active, disabled: !reachable }}
+                style={[styles.step, { borderColor: t.edge, backgroundColor: active ? t.ink : t.paper, opacity: reachable ? 1 : 0.5 }]}>
+                <View style={[styles.stepNum, { backgroundColor: active ? t.sun : t.sky, borderColor: t.edge }]}>
+                  <Text style={{ fontFamily: fonts.display, fontSize: 15, color: active ? t.sunInk : t.ink }}>{n}</Text>
+                </View>
+                <Text style={[styles.label, { color: active ? t.paper : t.ink, flexShrink: 1 }]} numberOfLines={1}>
+                  {n === 1 ? s.stepCats : s.mySeries}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>
+
+        <Animated.View style={{ gap: 18, opacity: fade, transform: [{ translateY: fade.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
+        {step === 1 ? (<>
 
         {acc.profiles.length > 0 && (
           <View style={{ gap: 8 }}>
@@ -159,7 +192,23 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           </View>
         )}
 
-        <Text style={[styles.h2, { color: t.ink, marginTop: 8 }]}>{s.mySeries}</Text>
+        </>) : (<>
+        <View style={styles.sectionHead}>
+          <Text style={[styles.h2, { color: t.ink }]}>{s.mySeries}</Text>
+          <Pressable onPress={() => goTo(1)} hitSlop={8} accessibilityRole="button">
+            <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textDecorationLine: "underline" }}>{s.change}</Text>
+          </Pressable>
+        </View>
+        {categories && (
+          <View style={styles.chips}>
+            {categories.filter((c) => selected.has(c.slug)).map((c) => (
+              <View key={c.slug} style={[styles.who, { borderColor: t.edge, backgroundColor: t.paper }]}>
+                <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={22} />
+                <Text style={[styles.label, { color: t.ink }]}>{c.name}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         <View style={[styles.panel, { backgroundColor: t.paper, borderColor: t.edge }, hardShadow(t.drop, 4)]}>
           <Setting label={s.howMany}>
             {[10, 20, 50, 100].map((n) => <Chip key={n} label={String(n)} selected={settings.count === n} onPress={() => update({ count: n })} />)}
@@ -182,16 +231,27 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           {languages.length > 1 && <Toggle label={s.showTranslation} value={settings.showTranslation} onChange={(v) => update({ showTranslation: v })} />}
           <Toggle label={s.autoNext} value={settings.autoNext} onChange={(v) => update({ autoNext: v })} />
         </View>
+        </>)}
+        </Animated.View>
       </ScrollView>
 
       <View style={[styles.startBar, { paddingBottom: insets.bottom + 14, backgroundColor: t.sky }]}>
         {startError && <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textAlign: "center" }}>{startError}</Text>}
-        <BigButton
-          label={starting ? s.loading : settings.categories.length ? s.start(settings.count) : s.pick}
-          onPress={onStart}
-          disabled={!settings.categories.length || starting || !!error}
-          style={{ width: "100%", maxWidth: 520 }}
-        />
+        {step === 1 ? (
+          <BigButton
+            label={settings.categories.length ? `${s.nextStep} · ${s.catsChosen(settings.categories.length)} →` : s.pick}
+            onPress={() => goTo(2)}
+            disabled={!settings.categories.length || !!error}
+            style={{ width: "100%", maxWidth: 520 }}
+          />
+        ) : (
+          <BigButton
+            label={starting ? s.loading : s.start(settings.count)}
+            onPress={onStart}
+            disabled={!settings.categories.length || starting || !!error}
+            style={{ width: "100%", maxWidth: 520 }}
+          />
+        )}
       </View>
     </View>
   )
@@ -217,6 +277,9 @@ const styles = StyleSheet.create({
   logo: { width: 48, height: 48, borderRadius: 14, borderWidth: 3, alignItems: "center", justifyContent: "center", transform: [{ rotate: "-6deg" }] },
   title: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32 },
   h2: { fontFamily: fonts.display, fontSize: 22 },
+  steps: { flexDirection: "row", gap: 8 },
+  step: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, borderWidth: 2.5 },
+  stepNum: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   sectionHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   grid: { flexDirection: "row", flexWrap: "wrap" },
