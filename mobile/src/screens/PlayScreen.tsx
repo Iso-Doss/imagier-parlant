@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react"
-import { Animated, AppState, Easing, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native"
+import { AppState, Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native"
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useKeepAwake } from "expo-keep-awake"
 import * as Haptics from "expo-haptics"
@@ -8,9 +18,11 @@ import { mediaUrl, type Item, type Series } from "../api"
 import type { AnswerResult } from "../account"
 import { playChime, playRecording, playTick, say, stopSpeaking } from "../audio"
 import { CountdownRing } from "../components/CountdownRing"
+import { Confetti, useTyping } from "../components/motion"
 import { BigButton, Picture, SmallButton } from "../components/ui"
 import { NUMBERS, strings } from "../i18n"
 import { hintsFor, matchAnswer } from "../lib/answerMatcher"
+import { preloadItems } from "../preload"
 import { listen } from "../speech"
 import type { Settings } from "../settings"
 import { fonts, hardShadow, useTheme } from "../theme"
@@ -54,9 +66,15 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
   const parentMode = settings.answerMode === "parent" || (settings.answerMode === "voice" && fallback)
   const judged = settings.answerMode !== "watch"
   const [hearing, setHearing] = useState<"listening" | "close">("listening")
-  const volume = useRef(new Animated.Value(0)).current
-  const pop = useRef(new Animated.Value(0)).current
-  const reveal = useRef(new Animated.Value(0)).current
+  // Animations (catalogue UI/UX §3.2) ; tout est immédiat si « Réduire les animations » est actif
+  const reduced = useReducedMotion()
+  const volume = useSharedValue(0)
+  const enter = useSharedValue(0)
+  const leave = useSharedValue(0)
+  const questionIn = useSharedValue(0)
+  const reveal = useSharedValue(0)
+  const jump = useSharedValue(0)
+  const [burst, setBurst] = useState(0)
 
   const total = settings.delay * 1000
   const secondsLeft = Math.max(1, Math.ceil((total - elapsed) / 1000))
@@ -87,13 +105,23 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     await say(item.sentence ?? item.name ?? "", language.tts_locale)
   }
 
-  async function playItem(item: Item, my: number) {
-    // 1. Picture + question
+  const animate = (value: SharedValue<number>, to: number, how: (to: number) => number) => {
+    value.value = reduced ? to : how(to)
+  }
+
+  async function playItem(item: Item, i: number, my: number) {
+    // Les 3 objets suivants se chargent pendant celui-ci
+    preloadItems(items.slice(i + 1, i + 4))
+
+    // 1. Picture + question : l'image arrive de la droite, la question monte en fondu
     setPhase("question")
     setElapsed(0)
-    reveal.setValue(0)
-    pop.setValue(0)
-    Animated.spring(pop, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start()
+    reveal.value = 0
+    questionIn.value = 0
+    leave.value = 0
+    enter.value = 0
+    animate(enter, 1, (to) => withSpring(to, { stiffness: 220, damping: 20 }))
+    animate(questionIn, 1, (to) => withTiming(to, { duration: 250 }))
     await wait(450, my)
     await waitWhilePaused(my)
     await say(language.question, language.tts_locale)
@@ -127,10 +155,17 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
       : !judged ? "skipped"
       : verdictNow ?? (listening && heardSomething && !fallbackRef.current ? "wrong" : "silent")
     results.current.push({ item_id: item.id, result: outcome, response_ms: outcome === "correct" ? answeredAt : null })
+    // La réponse est notée : la pause qui suit ne doit pas s'arrêter tout de suite
+    verdictRef.current = null
 
     // 3. Answer
     setPhase("answer")
-    Animated.timing(reveal, { toValue: 1, duration: 380, easing: Easing.out(Easing.back(1.6)), useNativeDriver: true }).start()
+    animate(reveal, 1, (to) => withTiming(to, { duration: 380, easing: Easing.out(Easing.back(1.6)) }))
+    if (outcome === "correct") {
+      // Bonne réponse : la carte saute et 12 confettis jaillissent
+      setBurst((b) => b + 1)
+      if (!reduced) jump.value = withSequence(withTiming(-28, { duration: 160 }), withSpring(0, { stiffness: 300, damping: 10 }))
+    }
     // Le carillon seulement si c'est trouvé (ou en mode « on regarde ») : jamais de son négatif
     if (result !== "skip" && (outcome === "correct" || !judged)) { playChime(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}) }
     await sleep(250)
@@ -141,13 +176,19 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     // 4. Short pause, or wait for "Next"
     if (settings.autoNext) await wait(2200, my)
     else while (true) { if (runId.current !== my) throw ABORT; if (skipRef.current) { skipRef.current = false; break } await sleep(60) }
+
+    // 5. L'image s'envole vers la gauche
+    if (!reduced) {
+      leave.value = withTiming(1, { duration: 300, easing: Easing.in(Easing.quad) })
+      await sleep(300)
+    }
   }
 
   // Écoute pendant le compte à rebours ; s'arrête dès que la réponse est juste.
   function startListening(item: Item, onAnything: () => void) {
     const forms = [item.name ?? "", ...(item.aliases ?? [])].filter((f) => f !== "")
     setHearing("listening")
-    volume.setValue(0)
+    volume.value = 0
     let stop = () => {}
     stop = listen(language.tts_locale, hintsFor(forms, language.code), {
       onHeard: (transcripts) => {
@@ -160,7 +201,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
           stop()
         } else if (match === "close") setHearing("close")
       },
-      onVolume: (level) => volume.setValue(level),
+      onVolume: (level) => { volume.value = withTiming(level, { duration: 100 }) },
       onUnavailable: () => {
         fallbackRef.current = true
         setFallback(true)
@@ -186,7 +227,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
       try {
         for (let i = 0; i < items.length; i++) {
           setIdx(i)
-          await playItem(items[i], my)
+          await playItem(items[i], i, my)
         }
         onDone(results.current)
       } catch (e) {
@@ -228,6 +269,23 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
   const cardSize = Math.min(width - 32, height * 0.46, 460)
   const word = item.name ?? ""
   const m = word.match(ARTICLE)
+  // Le nom s'écrit lettre par lettre pendant qu'il est dit
+  const typed = useTyping(word, phase === "answer" && settings.showWord)
+  const article = m ? m[1] : ""
+  const shownArticle = article.slice(0, typed)
+  const shownRest = (m ? m[2] : word).slice(0, Math.max(0, typed - article.length))
+
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: enter.value * (1 - leave.value),
+    transform: [
+      { translateX: (1 - enter.value) * 80 - leave.value * width * 0.7 },
+      { translateY: jump.value },
+      { scale: 0.85 + 0.15 * enter.value },
+      { rotate: `${(1 - enter.value) * -4}deg` },
+    ],
+  }))
+  const questionStyle = useAnimatedStyle(() => ({ opacity: questionIn.value, transform: [{ translateY: (1 - questionIn.value) * 12 }] }))
+  const revealStyle = useAnimatedStyle(() => ({ opacity: reveal.value, transform: [{ translateY: (1 - reveal.value) * 14 }] }))
 
   return (
     <View style={{ flex: 1, backgroundColor: t.sky, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16, paddingHorizontal: 16 }}>
@@ -247,21 +305,20 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
         </View>
 
         <View style={styles.center}>
-          <View style={[styles.card, { width: cardSize, height: cardSize, borderColor: t.edge, backgroundColor: t.paper }, hardShadow(t.drop, 6)]}>
-            <Animated.View style={{ transform: [{ scale: pop.interpolate({ inputRange: [0, 1], outputRange: [0.3, 1] }) }, { rotate: pop.interpolate({ inputRange: [0, 1], outputRange: ["-12deg", "0deg"] }) }], opacity: pop }}>
-              <Picture image={item.image_url} emoji={item.emoji} size={item.image_url ? cardSize - 8 : cardSize * 0.62} />
-            </Animated.View>
-          </View>
+          <Animated.View style={[styles.card, { width: cardSize, height: cardSize, borderColor: t.edge, backgroundColor: t.paper }, hardShadow(t.drop, 6), cardStyle]}>
+            <Picture image={item.image_url} emoji={item.emoji} size={item.image_url ? cardSize - 8 : cardSize * 0.62} />
+          </Animated.View>
+          <Confetti burst={burst} />
 
           <View style={styles.stage}>
-            {phase === "question" && <Text style={[styles.question, { color: t.ink }]}>{language.question}</Text>}
+            {phase === "question" && <Animated.Text style={[styles.question, { color: t.ink }, questionStyle]}>{language.question}</Animated.Text>}
             {phase === "count" && <CountdownRing progress={elapsed / total} seconds={secondsLeft} />}
             {phase === "answer" && (
-              <Animated.View style={{ alignItems: "center", gap: 4, opacity: reveal, transform: [{ translateY: reveal.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }) }] }}>
+              <Animated.View style={[{ alignItems: "center", gap: 4 }, revealStyle]}>
                 {settings.showWord ? (
-                  <Text style={[styles.word, { color: t.ink }]} adjustsFontSizeToFit numberOfLines={2}>
-                    {m ? <Text style={[styles.article, { color: t.muted }]}>{m[1]}</Text> : null}
-                    {m ? m[2] : word}
+                  <Text style={[styles.word, { color: t.ink }]} adjustsFontSizeToFit numberOfLines={2} accessibilityLabel={word}>
+                    {shownArticle ? <Text style={[styles.article, { color: t.muted }]}>{shownArticle}</Text> : null}
+                    {shownRest || "\u00a0"}
                   </Text>
                 ) : (
                   <Text style={[styles.said, { color: t.leaf }]}>{item.sentence} !</Text>
@@ -308,13 +365,16 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
 }
 
 /** Micro qui grossit avec la voix : l'enfant voit qu'on l'écoute. */
-function MicIndicator({ volume, label }: { volume: Animated.Value; label: string }) {
+function MicIndicator({ volume, label }: { volume: SharedValue<number>; label: string }) {
   const t = useTheme()
+  const halo = useAnimatedStyle(() => ({ opacity: 0.15 + 0.35 * volume.value, transform: [{ scale: 1 + 0.6 * volume.value }] }))
+  // Le micro grossit selon le volume (0,9 à 1,2)
+  const dot = useAnimatedStyle(() => ({ transform: [{ scale: 0.9 + 0.3 * volume.value }] }))
   return (
     <View style={styles.mic} accessibilityLiveRegion="polite" accessibilityLabel={label}>
       <View style={styles.micWrap}>
-        <Animated.View style={[styles.micHalo, { backgroundColor: t.leaf, opacity: volume.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.5] }), transform: [{ scale: volume.interpolate({ inputRange: [0, 1], outputRange: [1, 1.6] }) }] }]} />
-        <View style={[styles.micDot, { borderColor: t.edge, backgroundColor: t.paper }]}><Text style={styles.micIcon}>🎤</Text></View>
+        <Animated.View style={[styles.micHalo, { backgroundColor: t.leaf }, halo]} />
+        <Animated.View style={[styles.micDot, { borderColor: t.edge, backgroundColor: t.paper }, dot]}><Text style={styles.micIcon}>🎤</Text></Animated.View>
       </View>
       <Text style={[styles.micLabel, { color: t.ink }]}>{label}</Text>
     </View>
