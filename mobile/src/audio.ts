@@ -35,6 +35,25 @@ export function say(text: string, language: string, rate = 0.9): Promise<void> {
 
 export const stopSpeaking = () => Speech.stop()
 
+// Prononciations chargées à l'avance (les 3 objets suivants), pour ne jamais attendre le réseau.
+const preloaded = new Map<string, AudioPlayer>()
+const MAX_PRELOADED = 4
+
+export function preloadRecording(url: string) {
+  if (preloaded.has(url)) return
+  try {
+    preloaded.set(url, createAudioPlayer({ uri: url }))
+  } catch {
+    return
+  }
+  // On garde seulement les plus récentes
+  while (preloaded.size > MAX_PRELOADED) {
+    const [oldest, player] = preloaded.entries().next().value as [string, AudioPlayer]
+    preloaded.delete(oldest)
+    player.remove()
+  }
+}
+
 /** Plays a recorded pronunciation. Resolves false if it could not play, so the caller can fall back to the device voice. */
 export function playRecording(url: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -53,7 +72,8 @@ export function playRecording(url: string): Promise<boolean> {
     const guard = setTimeout(() => finish(started), 8000)
     let sub: { remove: () => void } | undefined
     try {
-      player = createAudioPlayer({ uri: url })
+      player = preloaded.get(url) ?? createAudioPlayer({ uri: url })
+      preloaded.delete(url)
       sub = player.addListener("playbackStatusUpdate", (s) => {
         if (s.playing) started = true
         if (s.didJustFinish) finish(true)

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ActivityIndicator, Animated, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View, useWindowDimensions } from "react-native"
+import Animated, { useReducedMotion, useSharedValue, withTiming, useAnimatedStyle } from "react-native-reanimated"
+import { ActivityIndicator, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { AVATARS, useAccount } from "../account"
 import { fetchCategories, fetchLanguages, type Category, type Language } from "../api"
@@ -30,14 +31,17 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const [voiceNote, setVoiceNote] = useState<string | null>(null)
   // Deux étapes : 1. les catégories, 2. la série
   const [step, setStep] = useState<1 | 2>(1)
-  const fade = useRef(new Animated.Value(1)).current
+  const reduced = useReducedMotion()
+  const fade = useSharedValue(1)
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value, transform: [{ translateY: (1 - fade.value) * 12 }] }))
   const scroll = useRef<ScrollViewInstance>(null)
   const goTo = (next: 1 | 2) => {
     if (next === step) return
     setStep(next)
     scroll.current?.scrollTo({ y: 0, animated: false })
-    fade.setValue(0)
-    Animated.timing(fade, { toValue: 1, duration: 220, useNativeDriver: true }).start()
+    if (reduced) return
+    fade.value = 0
+    fade.value = withTiming(1, { duration: 220 })
   }
 
   // Le micro ne s'active qu'après l'accord d'un adulte, dans l'espace parent.
@@ -116,7 +120,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           })}
         </View>
 
-        <Animated.View style={{ gap: 18, opacity: fade, transform: [{ translateY: fade.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }}>
+        <Animated.View style={[{ gap: 18 }, fadeStyle]}>
         {step === 1 ? (<>
 
         {acc.profiles.length > 0 && (

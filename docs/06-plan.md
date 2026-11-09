@@ -95,15 +95,21 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
 ≤ 5 % des réponses justes sont refusées ; aucune donnée audio ne sort du téléphone
 (vérifié par inspection du trafic réseau).
 
-## Phase 4 — Fluidité, animations, finitions (2 semaines)
+## Phase 4 — Fluidité, animations, finitions (2 semaines) 🚧
 
-- [ ] Reanimated 4 : toutes les animations du catalogue UI/UX §3.2
+- [x] Reanimated 4 dans l'app (accueil, partie, fin) ; plus d'API `Animated` de base dans les écrans
+- [x] Partie : entrée de l'image (droite, échelle, rotation), question en fondu, chiffre qui pulse,
+  micro selon le volume, 12 confettis et saut de la carte, nom écrit lettre par lettre, sortie vers la gauche
+- [ ] Partie : anneau qui devient vert, mascotte ; animations de toucher (bouton, catégorie) du catalogue
 - [ ] Transition partagée catégorie → partie
-- [ ] Préchargement des 3 images et sons suivants ; zéro attente entre deux objets
-- [ ] Écran de bienvenue (3 écrans), mascotte, fin de série festive
+- [x] Préchargement des 3 images et sons suivants (`src/preload.ts`)
+- [ ] Mesurer l'attente entre deux objets sur un vrai téléphone
+- [x] Fin de série festive : étoiles qui tombent, score qui compte, étoile qui danse
+- [ ] Écran de bienvenue (3 écrans), mascotte
 - [ ] Sous-catégories à l'accueil
 - [ ] Mise en page tablette (paysage)
-- [ ] « Réduire les animations », tailles de texte, VoiceOver / TalkBack côté parent
+- [x] « Réduire les animations » du système respecté (aucune animation de mouvement, pas de confettis)
+- [ ] Tailles de texte, VoiceOver / TalkBack côté parent
 - [ ] Mode hors connexion : packs par catégorie, SQLite local, gestion de l'espace
 - [ ] Mesures : 60 images/s sur un Android d'entrée de gamme (profilage)
 

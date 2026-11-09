@@ -1,13 +1,17 @@
-import { Text, View } from "react-native"
+import { View } from "react-native"
+import Animated, { useAnimatedStyle } from "react-native-reanimated"
 import Svg, { Circle } from "react-native-svg"
 import { fonts, useTheme } from "../theme"
+import { usePulse } from "./motion"
 
-/** Ring that empties as time runs out, with the seconds left in the middle. */
+/** Anneau qui se vide pendant le temps de réflexion ; le chiffre pulse à chaque seconde. */
 export function CountdownRing({ progress, seconds, size = 96 }: { progress: number; seconds: number; size?: number }) {
   const t = useTheme()
   const stroke = 10
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
+  const pulse = usePulse(seconds)
+  const digit = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }))
   return (
     <View style={{ width: size, height: size }} accessibilityRole="timer" accessibilityLabel={`${seconds}`}>
       <Svg width={size} height={size} style={{ transform: [{ rotate: "-90deg" }] }}>
@@ -16,7 +20,7 @@ export function CountdownRing({ progress, seconds, size = 96 }: { progress: numb
           strokeDasharray={`${c} ${c}`} strokeDashoffset={c * progress} />
       </Svg>
       <View style={{ position: "absolute", inset: 0, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontFamily: fonts.display, fontSize: size * 0.4, color: t.ink }}>{seconds}</Text>
+        <Animated.Text style={[{ fontFamily: fonts.display, fontSize: size * 0.4, color: t.ink }, digit]}>{seconds}</Animated.Text>
       </View>
     </View>
   )
