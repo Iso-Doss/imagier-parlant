@@ -3,6 +3,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap">
 <style>
+[hidden]{display:none!important}
 /* Layout: one-column phone app, flash-card "imagier" look — thick outlines, hard offset shadows, big emoji cards */
 :root{
   --sky:#E7F1FA; --paper:#FFFFFF; --ink:#1B2A4A; --muted:#5A6987;
@@ -49,6 +50,15 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 
 /* categories */
+.steps{display:flex;gap:8px}
+.steps button{flex:1;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:2.5px solid var(--edge);background:var(--paper);font-weight:800;text-align:left}
+.steps button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.steps button:disabled{opacity:.5}
+.steps .n{width:26px;height:26px;flex:none;border-radius:50%;border:2px solid var(--edge);display:grid;place-items:center;font-family:var(--display);background:var(--sky);color:var(--ink)}
+.steps button[aria-selected="true"] .n{background:var(--sun)}
+.picked{display:flex;flex-wrap:wrap;gap:8px}
+.picked span{padding:6px 12px;border-radius:999px;border:2.5px solid var(--edge);background:var(--paper);font-weight:800}
+.step-in{animation:rise .25s ease-out}
 .section{display:flex;flex-direction:column;gap:12px}
 .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .section-head h2{font-size:1.35rem}
@@ -154,13 +164,19 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance}
     </div>
   </header>
 
-  <section class="section">
+  <div class="steps" role="tablist">
+    <button id="step1" role="tab"><span class="n">1</span><span data-t="stepCats"></span></button>
+    <button id="step2" role="tab"><span class="n">2</span><span data-t="mySeries"></span></button>
+  </div>
+
+  <section class="section" id="stepCatsPanel">
     <div class="section-head"><h2 data-t="chooseCats"></h2><button class="link" id="toggleAll"></button></div>
     <div class="cats" id="cats"></div>
   </section>
 
-  <section class="section">
-    <div class="section-head"><h2 data-t="mySeries"></h2></div>
+  <section class="section" id="stepSeriesPanel" hidden>
+    <div class="section-head"><h2 data-t="mySeries"></h2><button class="link" id="backToCats" data-t="changeCats"></button></div>
+    <div class="picked" id="picked"></div>
     <div class="settings">
       <div class="row"><div class="txt"><b data-t="howMany"></b><span data-t="howManyHint"></span></div>
         <div class="chips" id="lenChips"></div></div>
@@ -457,6 +473,7 @@ const T = {
   autoNext:"Image suivante automatique", autoNextHint:"Sinon, appuie sur « Suivant ».",
   mic:"Répondre au micro", micHint:"L'enfant dit le nom à voix haute. Dans le navigateur, la voix peut passer par le service de Google ou d'Apple : à n'utiliser que pour essayer.",
   listening:"Je t'écoute…", almost:"Presque !", micNo:"Le micro est refusé ou indisponible : la réponse sera dite sans vérification.",
+  stepCats:"Catégories", nextStep:n=>`Suivant · ${n} catégorie${n>1?"s":""} →`,
   start:n=>`Commencer · ${n} images`, pick:"Choisis au moins une catégorie", objects:n=>`${n} objets`,
   question:"Qu'est-ce que c'est ?", sentence:it=>it.frS || `C'est ${it.fr}`, word:it=>it.fr, other:it=>it.en, otherFlag:"EN",
   repeat:"Répéter", next:"Suivant", answer:"Réponse", paused:"Pause", resume:"Reprendre",
@@ -471,6 +488,7 @@ const T = {
   autoNext:"Next picture automatically", autoNextHint:"Otherwise, tap “Next”.",
   mic:"Answer out loud", micHint:"The child says the name out loud. In the browser, the voice may go through Google's or Apple's service: use it only to try things out.",
   listening:"I'm listening…", almost:"Almost!", micNo:"The microphone is blocked or unavailable: the answer will be said without checking.",
+  stepCats:"Categories", nextStep:n=>`Next · ${n} categor${n>1?"ies":"y"} →`,
   start:n=>`Start · ${n} pictures`, pick:"Pick at least one category", objects:n=>`${n} objects`,
   question:"What is this?", sentence:it=>it.enS || `It's ${it.en}`, word:it=>it.en, other:it=>it.fr, otherFlag:"FR",
   repeat:"Repeat", next:"Next", answer:"Answer", paused:"Paused", resume:"Resume",
@@ -530,6 +548,13 @@ const tick = last => last ? beep(1320,.09,"square",.1) : beep(880,.05,"square",.
 const chime = ()=>{ beep(784,.25,"triangle",.22); beep(1047,.35,"triangle",.22,.12); beep(1319,.45,"triangle",.18,.24); };
 
 // ---------- Écran d'accueil ----------
+let step=1;
+function goStep(n){
+  if(n===step || (n===2 && !S.cats.length)) return;
+  step=n; renderHome(); window.scrollTo(0,0);
+  const panel = $(n===1 ? "stepCatsPanel" : "stepSeriesPanel");
+  panel.classList.remove("step-in"); void panel.offsetWidth; panel.classList.add("step-in");
+}
 function renderHome(){
   document.documentElement.lang = S.lang;
   document.querySelectorAll("[data-t]").forEach(el=>{ const v=t(el.dataset.t); if(typeof v==="string") el.textContent=v; });
@@ -543,7 +568,14 @@ function renderHome(){
   chips("countChips", ["tick","voice","silent"], S.count, v=>t(v), v=>{S.count=v;});
   sw("sw-word","word"); sw("sw-trans","trans"); sw("sw-auto","auto"); sw("sw-mic","mic");
   $("micRow").hidden = !SR;
-  const b = $("start"); b.disabled = !S.cats.length; b.textContent = S.cats.length ? t("start")(S.len) : t("pick");
+  // Deux étapes : 1. les catégories, 2. la série
+  if(!S.cats.length) step=1;
+  $("stepCatsPanel").hidden = step!==1; $("stepSeriesPanel").hidden = step!==2;
+  $("step1").setAttribute("aria-selected", step===1); $("step2").setAttribute("aria-selected", step===2);
+  $("step2").disabled = !S.cats.length;
+  $("picked").innerHTML = CATS.filter(c=>S.cats.includes(c.id)).map(c=>`<span>${c.em} ${c[S.lang]}</span>`).join("");
+  const b = $("start"); b.disabled = !S.cats.length;
+  b.textContent = !S.cats.length ? t("pick") : step===1 ? t("nextStep")(S.cats.length) : t("start")(S.len);
   renderVoiceNote();
 }
 function chips(id, values, cur, label, set){
@@ -699,7 +731,10 @@ function finish(){
 }
 
 // ---------- Boutons ----------
-$("start").onclick = ()=>startSeries(false);
+$("start").onclick = ()=>{ if(step===1) goStep(2); else startSeries(false); };
+$("step1").onclick = ()=>goStep(1);
+$("step2").onclick = ()=>goStep(2);
+$("backToCats").onclick = ()=>goStep(1);
 $("again").onclick = ()=>startSeries(true);
 $("home-btn").onclick = ()=>{ show("home"); renderHome(); };
 $("quit").onclick = ()=>{ stopRun(); $("pausedLayer").hidden=true; show("home"); renderHome(); };

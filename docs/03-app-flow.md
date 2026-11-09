@@ -71,17 +71,22 @@ flowchart LR
 
 ### 2.5 Accueil — catégories
 
+L'accueil se fait en **deux étapes**, rappelées en haut de l'écran (① Catégories · ② Ma série) :
+on choisit d'abord les catégories, puis « Suivant » ouvre les réglages de la série. On peut
+revenir aux catégories à tout moment (pastille ① ou « Changer de catégories »). L'étape ②
+n'est accessible qu'avec au moins une catégorie choisie.
+
 - Grandes cartes colorées : image de la catégorie + nom (écrit **et** dit au toucher).
 - Haut de l'écran : avatar du profil (toucher = changer de profil), bouton cadenas (espace parent).
 - Les catégories téléchargées ont une petite pastille ✓ ; sans réseau, seules elles sont actives.
 - Toucher une catégorie → elle se colore et rebondit (sélection multiple possible).
 - Une catégorie mère (Animaux) ouvre ses sous-catégories (Ferme, Savane, Mer…) en glissant vers la droite ;
   on peut aussi la jouer entière.
-- Gros bouton ▶ « Jouer » qui apparaît dès qu'une catégorie est choisie.
+- Gros bouton « Suivant · 3 catégories → » dès qu'une catégorie est choisie.
 
-### 2.6 Réglage rapide de la série
+### 2.6 Réglage rapide de la série (étape ②)
 
-Une feuille qui monte du bas, trois choix seulement, avec de grands boutons :
+Rappel des catégories choisies, puis les réglages avec de grands boutons, et « Commencer » en bas :
 
 | Réglage | Choix | Par défaut |
 |---|---|---|
