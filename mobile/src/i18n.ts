@@ -32,6 +32,15 @@ const fr = {
   doneText: (n: number) => `Tu as découvert ${n} images. Voici tout ce que tu as vu :`,
   again: "Rejouer la même série",
   change: "Changer de catégories",
+  found: "Trouvé",
+  notYet: "Pas encore",
+  foundText: (n: number, total: number) => `Tu as trouvé ${n} image${n > 1 ? "s" : ""} sur ${total} !`,
+  toReview: "À revoir",
+  answerMode: "Qui valide la réponse ?",
+  modeParent: "Un adulte (✓ / ✗)",
+  modeWatch: "Personne, on regarde",
+  guest: "Invité",
+  whoPlays: "Qui joue ?",
 }
 const en: typeof fr = {
   tagline: "One picture, one question, one word.",
@@ -66,6 +75,15 @@ const en: typeof fr = {
   doneText: (n) => `You discovered ${n} pictures. Here is everything you saw:`,
   again: "Play the same series",
   change: "Change categories",
+  found: "Got it",
+  notYet: "Not yet",
+  foundText: (n, total) => `You found ${n} picture${n > 1 ? "s" : ""} out of ${total}!`,
+  toReview: "To practise",
+  answerMode: "Who checks the answer?",
+  modeParent: "A grown-up (✓ / ✗)",
+  modeWatch: "Nobody, just watch",
+  guest: "Guest",
+  whoPlays: "Who is playing?",
 }
 export type Strings = typeof fr
 export const strings = (lang: string): Strings => (lang === "fr" ? fr : en)

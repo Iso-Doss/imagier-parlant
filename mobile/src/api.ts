@@ -43,13 +43,13 @@ export type Item = {
   translation?: string | null
   category?: { slug: string; name: string | null }
 }
-export type Series = { language: Language; count: number; distinct_items: number; items: Item[] }
+export type Series = { language: Language; count: number; distinct_items: number; review_items?: number; items: Item[] }
 
-async function get<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T> {
+async function get<T>(path: string, params: Record<string, string | number | undefined> = {}, token?: string | null): Promise<T> {
   const qs = Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&")
   let res: Response
   try {
-    res = await fetch(`${API_URL}/api/v1${path}${qs ? `?${qs}` : ""}`, { headers: { Accept: "application/json" } })
+    res = await fetch(`${API_URL}/api/v1${path}${qs ? `?${qs}` : ""}`, { headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
   } catch {
     throw new Error(`Impossible de joindre le serveur (${API_URL}).`)
   }
@@ -59,5 +59,6 @@ async function get<T>(path: string, params: Record<string, string | number | und
 
 export const fetchLanguages = () => get<{ data: Language[] }>("/languages").then((r) => r.data)
 export const fetchCategories = (lang: string) => get<{ data: Category[] }>("/categories", { lang }).then((r) => r.data)
-export const fetchSeries = (opts: { lang: string; categories: string[]; count: number; translation?: string }) =>
-  get<Series>("/series", { lang: opts.lang, categories: opts.categories.join(","), count: opts.count, translation: opts.translation })
+/** Avec un profil (et le jeton du parent), la série reprend des objets « à revoir ». */
+export const fetchSeries = (opts: { lang: string; categories: string[]; count: number; translation?: string; profile?: string; token?: string | null }) =>
+  get<Series>("/series", { lang: opts.lang, categories: opts.categories.join(","), count: opts.count, translation: opts.translation, profile: opts.profile }, opts.token)

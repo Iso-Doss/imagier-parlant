@@ -30,7 +30,8 @@
     },
     "plugins": [
       "expo-audio",
-      "expo-font"
+      "expo-font",
+      "expo-secure-store"
     ],
     "splash": {
       "backgroundColor": "#E7F1FA"

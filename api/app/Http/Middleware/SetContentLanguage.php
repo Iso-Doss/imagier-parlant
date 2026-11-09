@@ -17,7 +17,9 @@ class SetContentLanguage
     {
         $active = Language::active()->get()->keyBy('code');
 
-        $wanted = $request->query('lang') ?: $request->getPreferredLanguage($active->keys()->all());
+        // Sans ?lang ni en-tête Accept-Language : langue par défaut (sinon Symfony prend la première de la liste)
+        $wanted = $request->query('lang')
+            ?: ($request->headers->has('Accept-Language') ? $request->getPreferredLanguage($active->keys()->all()) : null);
         $language = $active->get((string) $wanted) ?? $active->get(config('app.fallback_locale')) ?? $active->first();
 
         if ($request->filled('lang') && ! $active->has($request->query('lang'))) {

@@ -43,8 +43,8 @@ Sortie : choix « Créer un compte » (parent) ou « Jouer tout de suite » (inv
 ### 2.2 Portail parental 🔒
 
 - Une consigne écrite **et lue** : « Demande à un adulte ».
-- Une opération simple à résoudre pour un adulte, difficile pour un petit : « Touchez le chiffre
-  quarante-sept » parmi quatre chiffres, ou « appuyez 3 secondes sur le cadenas ».
+- Une multiplication simple pour un adulte, impossible pour un petit : « Combien font 4 × 3 ? »
+  avec quatre réponses au choix (en place).
 - Trois erreurs → retour à l'accueil.
 - Protège : inscription, connexion, réglages, compte, liens externes, permission micro.
 

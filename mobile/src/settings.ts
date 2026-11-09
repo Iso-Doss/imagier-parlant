@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useEffect, useState } from "react"
 
 export type CountStyle = "tick" | "voice" | "silent"
+/** Comment l'enfant répond : le parent valide ✓/✗, ou on regarde seulement (comme la vidéo) */
+export type AnswerMode = "parent" | "watch"
 export type Settings = {
   lang: string
   categories: string[]
@@ -11,6 +13,7 @@ export type Settings = {
   showWord: boolean
   showTranslation: boolean
   autoNext: boolean
+  answerMode: AnswerMode
 }
 
 export const DEFAULTS: Settings = {
@@ -22,6 +25,7 @@ export const DEFAULTS: Settings = {
   showWord: true,
   showTranslation: false,
   autoNext: true,
+  answerMode: "watch",
 }
 
 const KEY = "imagier-settings-v1"

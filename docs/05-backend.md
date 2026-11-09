@@ -85,7 +85,8 @@ des colonnes calculées et indexées (`has_image`, `missing_audio_count`) mises 
 
 | Table | Colonnes |
 |---|---|
-| `users` | + `email_verified_at`, `locale`, `role` (parent, editor, reviewer, admin), `two_factor_secret` (chiffré), `deleted_at` (suppression douce 30 jours puis purge) |
+| `users` | + `locale`, `terms_accepted_at` ✅ ; à venir : `role` (parent, editor, reviewer, admin), `two_factor_secret` (chiffré) |
+| `account_codes` ✅ | user_id, purpose (verify, reset), code_hash, attempts, expires_at |
 | `social_accounts` | user_id, provider (apple, google), provider_id (unique par provider) |
 | `child_profiles` | id (UUID), user_id, nickname (20 car.), avatar, age_band (2-3, 4-5, 6-7), locale, settings (JSON) |
 | `devices` | user_id, name, platform, last_seen_at, token_id (jeton Sanctum) |
@@ -114,29 +115,34 @@ Format : JSON, dates ISO 8601 UTC, langue par `?lang=` ou `Accept-Language`, en-
 Chaque objet renvoyé contient : `id`, `image_url` (+ `thumb_url`), `name`, `sentence`,
 `aliases`, `audio_url`, `category`, et `translation` si demandé.
 
-### 3.2 Comptes
+### 3.2 Comptes parents — `/account` ✅
 
 | Méthode | Route | Rôle |
 |---|---|---|
-| POST | `/auth/register` | E-mail, mot de passe, langue, acceptation des conditions → envoie un code |
-| POST | `/auth/email/verify` | Code à 6 chiffres → active le compte, renvoie le jeton |
-| POST | `/auth/email/resend` | Renvoyer le code (limité) |
-| POST | `/auth/login` | E-mail + mot de passe + `device_name` → jeton (existe pour les admins, à étendre) |
-| POST | `/auth/social/{provider}` | Jeton Apple ou Google vérifié côté serveur → jeton |
-| POST | `/auth/password/forgot` | Envoie un lien |
-| POST | `/auth/password/reset` | Lien + nouveau mot de passe ; révoque les autres jetons |
-| POST | `/auth/logout` | Révoque le jeton courant |
+| POST | `/account/register` | E-mail, mot de passe (10 car. min, fuites refusées en production), `accept_terms` → envoie un code |
+| POST | `/account/verify` | E-mail + code à 6 chiffres + `device_name` → active le compte, renvoie le jeton |
+| POST | `/account/verify/resend` | Renvoie un code (réponse identique que l'adresse existe ou non) |
+| POST | `/account/login` | E-mail + mot de passe + `device_name` → jeton ; 403 `email_not_verified` + nouveau code si non confirmé |
+| POST | `/account/password/forgot` | Envoie un code (réponse identique que l'adresse existe ou non) |
+| POST | `/account/password/reset` | Code + nouveau mot de passe → révoque tous les jetons, en renvoie un neuf |
+| POST | `/account/logout` | Révoque le jeton courant |
 
-### 3.3 Espace connecté (`auth:sanctum`, e-mail vérifié)
+Codes : valables 15 min, 5 essais, gardés hachés (`account_codes`). Jetons Sanctum : capacité `account`, expiration 90 jours.
+La connexion de l'administration reste sur `/auth/login` (administrateurs uniquement).
+Connexion Apple / Google : à faire (clés des fournisseurs nécessaires).
+
+### 3.3 Espace connecté `/me` (`auth:sanctum`) ✅
 
 | Méthode | Route | Rôle |
 |---|---|---|
-| GET / PATCH / DELETE | `/me` | Compte ; DELETE demande le mot de passe et lance la suppression |
+| GET / PATCH / DELETE | `/me` | Compte (langue, mot de passe avec l'actuel) ; DELETE demande le mot de passe et supprime **tout de suite et définitivement** |
 | GET | `/me/export` | Export de toutes les données (JSON) |
-| GET / DELETE | `/me/devices` | Appareils connectés, déconnexion à distance |
-| GET / POST / PATCH / DELETE | `/me/profiles` | Profils enfant (6 maximum) |
-| POST | `/me/profiles/{id}/sessions` | Envoi d'une série jouée et de ses réponses (lot, idempotent par UUID) |
-| GET | `/me/profiles/{id}/progress` | Résumé : connus, à revoir, temps de jeu, par catégorie |
+| GET / DELETE | `/me/devices`, `/me/devices/{id}` | Appareils connectés, déconnexion à distance |
+| GET / POST / PATCH / DELETE | `/me/profiles`, `/me/profiles/{id}` | Profils enfant (6 maximum) ; un profil d'un autre compte répond 404 |
+| POST | `/me/profiles/{id}/sessions` | Envoi d'une série jouée (UUID créé sur le téléphone, renvoi sans doublon) |
+| GET | `/me/profiles/{id}/progress` | Vus, connus (boîte ≥ 4), en cours, semaine, par catégorie, objets à revoir |
+
+`GET /series?profile={id}` (avec le jeton du parent) glisse jusqu'à 30 % d'objets « à revoir » dans la série.
 
 ### 3.4 Administration (`auth:sanctum` + rôle)
 
@@ -247,5 +253,4 @@ php artisan horizon                  # workers (production)
 php artisan queue:work --queue=media,tts,imports,packs,default   # workers (local)
 php artisan catalog:packs            # reconstruire tous les packs
 php artisan catalog:audio --missing --locale=fr   # générer les sons manquants
-php artisan users:purge-deleted      # purge des comptes supprimés depuis 30 jours
 ```

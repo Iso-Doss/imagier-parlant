@@ -57,19 +57,21 @@ Rendre le socle solide avant d'ajouter des fonctions.
 **Terminé quand** : une modification fusionnée sur `main` est en recette en moins de 15 minutes,
 tests verts, et une image envoyée depuis l'admin s'affiche dans l'app via le CDN.
 
-## Phase 2 — Comptes et profils (3 semaines)
+## Phase 2 — Comptes et profils (3 semaines) 🚧
 
-- [ ] API : inscription, code e-mail, connexion, mot de passe oublié, déconnexion (§3.2 backend)
-- [ ] API : connexion Apple et Google
-- [ ] API : `/me`, profils enfant, appareils, export, suppression avec purge à 30 jours
+- [x] API : inscription, code e-mail, connexion, mot de passe oublié, déconnexion (`/account/*`)
+- [ ] API : connexion Apple et Google — **à faire : clés Apple / Google**
+- [x] API : `/me`, profils enfant, appareils, export, suppression immédiate et définitive
 - [ ] Rôles (`parent`, `editor`, `reviewer`, `admin`) et Policies ; 2FA obligatoire pour l'équipe
-- [ ] Mobile : portail parental
-- [ ] Mobile : inscription, connexion, profils, avatars ; jeton dans SecureStore
-- [ ] Mobile : mode invité conservé, rattachement des progrès invités au premier profil
-- [ ] Mobile : envoi des séries jouées (file locale, idempotent) et écran Progrès
-- [ ] Répétition espacée dans `SeriesBuilder`
+- [x] Mobile : portail parental (multiplication, 3 essais)
+- [x] Mobile : inscription, connexion, code, mot de passe oublié, profils, avatars ; jeton dans SecureStore
+- [x] Mobile : mode invité conservé (rien n'est envoyé sans profil)
+- [ ] Mobile : rattachement des progrès invités au premier profil (les invités n'ont pas de progrès enregistrés pour l'instant)
+- [x] Mobile : envoi des séries jouées (file locale, renvoi sans doublon) et écran Progrès
+- [x] Mobile : mode « Un adulte valide » (✓ / ✗) pour enregistrer des réponses (avance sur la phase 3, R5)
+- [x] Répétition espacée (boîtes de Leitner) et objets « à revoir » dans les séries
 - [ ] Admin : page Comptes parents
-- [ ] E-mails en français (vérification, mot de passe, suppression) avec la charte
+- [x] E-mails en français (code de vérification, code de mot de passe)
 
 **Terminé quand** : un parent crée un compte sur un téléphone, ajoute deux profils, joue,
 retrouve les progrès sur un second téléphone, puis supprime son compte sans aide.

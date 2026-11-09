@@ -110,6 +110,17 @@ compte à rebours (tic-tac, chiffres dits ou silence) → carillon, nom écrit e
 de l'admin s'il existe, sinon voix du téléphone) → suivant. Pause, réécouter, passer ;
 l'écran reste allumé pendant une série et se met en pause si l'app passe en arrière-plan.
 
+### Comptes parents (facultatifs)
+
+Le cadenas en haut de l'accueil ouvre l'espace parent, derrière une petite multiplication.
+On y crée un compte (e-mail + code à 6 chiffres), des profils enfant (surnom, avatar, âge) et on suit
+les progrès. En développement, l'e-mail part dans `api/storage/logs/laravel.log` (`MAIL_MAILER=log`) :
+le code s'y lit directement. Sans compte, l'app fonctionne en invité et rien ne quitte le téléphone.
+
+Mode « Un adulte (✓ / ✗) » : pendant le compte à rebours, l'adulte indique si l'enfant a trouvé.
+Avec un profil, la série est envoyée au compte (ou gardée sur le téléphone jusqu'au retour du réseau),
+et les objets ratés reviennent dans les séries suivantes.
+
 ## Routes (préfixe `/api/v1`)
 
 ### Application mobile — publiques, lecture seule
@@ -126,6 +137,12 @@ Langue : `?lang=fr` ou l'en-tête `Accept-Language`.
 Chaque objet renvoie `emoji`, `image_url` (+ `card_url`, `thumb_url`), `name` (« une pomme »),
 `sentence` (« C'est une pomme ») et `audio_url` (prononciation enregistrée, ou `null` → l'app
 utilise la synthèse vocale).
+
+### Comptes parents — voir `docs/05-backend.md` §3.2 et §3.3
+
+`/account/register`, `/account/verify`, `/account/login`, `/account/password/forgot|reset`, `/account/logout`,
+puis avec le jeton : `/me`, `/me/profiles`, `/me/profiles/{id}/sessions`, `/me/profiles/{id}/progress`,
+`/me/devices`, `/me/export`.
 
 ### Administration — `Authorization: Bearer <jeton>`
 

@@ -9,7 +9,7 @@ possible, protéger tout ce qui est collecté, ne rien partager**.
 
 | Donnée | Qui | Pourquoi | Durée de conservation |
 |---|---|---|---|
-| E-mail, mot de passe (haché) | Parent | Compte, récupération | Vie du compte + 30 jours |
+| E-mail, mot de passe (haché) | Parent | Compte, récupération | Vie du compte (suppression immédiate et définitive à la demande) |
 | Identifiant Apple / Google | Parent | Connexion simplifiée | Vie du compte |
 | Surnom, avatar, tranche d'âge | Profil enfant | Personnaliser le jeu | Vie du profil |
 | Résultats de jeu (objet, juste/faux, temps de réponse) | Profil enfant | Progrès, répétition espacée | Vie du profil |
@@ -40,7 +40,7 @@ Une **politique de confidentialité** en français et en anglais, lisible par un
 
 - Mots de passe : 10 caractères minimum, vérifiés contre les fuites connues (`Password::uncompromised()`),
   hachés avec Argon2id (ou bcrypt coût 12).
-- E-mail vérifié par code à 6 chiffres, valable 15 minutes, 5 essais maximum.
+- E-mail vérifié par code à 6 chiffres, valable 15 minutes, 5 essais maximum, gardé haché (en place).
 - Connexion Apple et Google : le jeton d'identité est **vérifié côté serveur** (signature,
   audience, expiration), jamais cru sur parole.
 - Jetons Sanctum personnels : un par appareil, nommés, révocables, expiration après 90 jours
