@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\ItemTranslation;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ItemRequest extends FormRequest
@@ -20,6 +21,8 @@ class ItemRequest extends FormRequest
             ...$this->translationRules([
                 'name' => ['string', 'max:120'],
                 'sentence' => ['nullable', 'string', 'max:200'],
+                'aliases' => ['nullable', 'array', 'max:'.ItemTranslation::MAX_ALIASES],
+                'aliases.*' => ['nullable', 'string', 'max:80'],
             ]),
             'translations' => [$required, 'array'],
         ];

@@ -109,7 +109,7 @@ function Main() {
       {screen === "done" && series && (
         <DoneScreen series={series} results={results} lang={settings.lang} onAgain={again} onHome={() => setScreen("home")} />
       )}
-      {screen === "parent" && <ParentScreen lang={settings.lang} onClose={() => setScreen("home")} />}
+      {screen === "parent" && <ParentScreen lang={settings.lang} settings={settings} update={update} onClose={() => setScreen("home")} />}
       <ParentGate visible={gate} lang={settings.lang} onClose={() => setGate(false)} onPass={() => { setGate(false); setScreen("parent") }} />
     </>
   )

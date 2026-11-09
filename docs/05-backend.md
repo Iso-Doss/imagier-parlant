@@ -73,7 +73,7 @@ erDiagram
 |---|---|
 | `categories` | `parent_id` (nullable, index), `depth`, `items_count` (compteur dénormalisé) |
 | `items` | ~~`reference`~~ (fait), `status` (draft, review, published, archived), `difficulty` (1-3), `age_min`, `image_source`, `image_license`, `image_variants` (JSON : thumb, card, full), `updated_by` |
-| `item_translations` | `aliases` (JSON : variantes acceptées), `audio_source` (recorded, tts, none), `audio_duration_ms`, `phonetic_key` (index, pour la comparaison) |
+| `item_translations` | `aliases` (JSON : variantes acceptées, en place ; 10 au plus, nettoyées à l'enregistrement), `audio_source` (recorded, tts, none), `audio_duration_ms`, `phonetic_key` (index, pour la comparaison) |
 | `languages` | `stt_locale` (reconnaissance vocale), `tts_voice` (voix de synthèse choisie) |
 
 Index : `items(category_id, status, sort_order)`, `item_translations(locale, name)`,

@@ -114,21 +114,32 @@ normaliser(texte) =
   → espaces simplifiés
 ```
 
-Une réponse est juste si, pour au moins une forme acceptée (nom + variantes) :
+Une réponse est juste si, pour au moins une forme acceptée (nom + variantes) et un morceau
+de la phrase dite (un ou plusieurs mots collés, pour « c'est une belle pomme » ou « arc en ciel ») :
 
-- égalité après normalisation, **ou**
-- la forme est contenue dans la phrase dite (« c'est une belle pomme »), **ou**
-- distance de Levenshtein ≤ seuil (normale : 1 si ≤ 5 lettres, 2 au-delà ; stricte : 0 ;
-  indulgente : +1), **ou**
-- même code phonétique (adaptation française de Soundex/Phonex ; Double Metaphone pour l'anglais).
+- égalité après normalisation (seul cas accepté en tolérance **stricte**), **ou**
+- même code phonétique (règles simplifiées pour le français et l'anglais, inspirées de
+  Phonex et Metaphone), **ou**
+- une lettre d'écart au plus, **ou**
+- jusqu'au seuil de distance de Levenshtein, si les codes phonétiques ne diffèrent que d'un
+  signe (deux en indulgente). Seuil : 0 jusqu'à 3 lettres, 1 jusqu'à 5, 2 au-delà ; +1 en indulgente.
 
-La fonction de comparaison est **la même** sur mobile, sur le web et dans l'API (tests partagés
-via un fichier de cas JSON commun).
+Une première lettre différente ajoute 2 points (« gâteau » n'est pas « bateau »), sauf si
+l'enfant a avalé le début (« apin ») ou fait une substitution courante (« zirafe », « sien »).
+Une réponse proche mais refusée renvoie « presque » : l'app affiche « Presque ! » et continue
+d'écouter ; elle compte comme fausse si rien de juste n'arrive avant la fin.
+
+La fonction de comparaison est **la même** sur mobile (`mobile/src/lib/answerMatcher.ts`), dans
+le prototype (copie générée) et dans l'API (`App\Services\AnswerMatcher`) ; les trois passent les
+mêmes cas (`shared/answer-cases.json`) dans l'intégration continue. Pour changer une règle :
+ajouter le cas, modifier le TypeScript et le PHP, puis `npm run sync:prototype`.
 
 ### 4.3 Repli
 
 - Pas de permission micro, appareil sans reconnaissance, ou langue non prise en charge :
-  le mode parent ✓/✗ s'active automatiquement.
+  le mode parent ✓/✗ s'active automatiquement, avec un message pour l'adulte.
+- Expo Go ne contient pas le module de reconnaissance : il faut un build de développement
+  (`npx expo run:ios`, `npx expo run:android` ou EAS) pour essayer le micro sur un téléphone.
 - Aucune donnée audio n'est écrite sur le disque ni envoyée au serveur. Seul le résultat
   (juste / pas juste / sans réponse) est enregistré dans les progrès.
 

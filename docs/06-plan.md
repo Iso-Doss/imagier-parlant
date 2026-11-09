@@ -76,18 +76,20 @@ tests verts, et une image envoyée depuis l'admin s'affiche dans l'app via le CD
 **Terminé quand** : un parent crée un compte sur un téléphone, ajoute deux profils, joue,
 retrouve les progrès sur un second téléphone, puis supprime son compte sans aide.
 
-## Phase 3 — Écouter la réponse et dire si c'est juste (3 semaines)
+## Phase 3 — Écouter la réponse et dire si c'est juste (3 semaines) 🚧
 
-- [ ] Fichier de référence `shared/answer-cases.json` (300 cas FR + EN : juste, faux, prononciation d'enfant)
-- [ ] `AnswerMatcher` en TypeScript (mobile + prototype) et en PHP (API, admin), mêmes tests
-- [ ] Champ « variantes acceptées » dans l'admin et l'import ; génération de variantes simples automatique (avec / sans article)
-- [ ] Mobile : `expo-speech-recognition`, reconnaissance sur l'appareil, indices de contexte
-- [ ] Mobile : états Écoute / Juste / Presque, micro animé selon le volume
-- [ ] Mobile : mode parent ✓/✗ et mode « juste regarder »
-- [ ] Mobile : demande de permission derrière le portail parental, repli automatique
-- [ ] Réglage de tolérance (stricte / normale / indulgente)
-- [ ] Prototype web : même fonction avec la Web Speech API
-- [ ] Séances de test avec 10 enfants (2-7 ans) ; mesure du taux de faux « c'est faux »
+- [x] Fichier de référence `shared/answer-cases.json` (738 cas FR + EN : juste, faux, presque, prononciation d'enfant)
+- [x] `AnswerMatcher` en TypeScript (mobile, copié dans le prototype par `npm run sync:prototype`) et en PHP (API), mêmes cas dans l'intégration continue
+- [x] Champ « Autres réponses acceptées » dans l'admin (10 au plus) ; nom sans article, pluriel et petites erreurs acceptés sans variante
+- [ ] Variantes dans l'import CSV (l'import arrive en phase 5)
+- [x] Mobile : `expo-speech-recognition`, reconnaissance sur l'appareil quand c'est possible, indices de contexte (nom et variantes)
+- [x] Mobile : états Écoute / Juste / Presque, micro animé selon le volume
+- [x] Mobile : mode parent ✓/✗ et mode « juste regarder »
+- [x] Mobile : permission demandée dans l'espace parent, repli automatique sur ✓/✗ (Expo Go, refus, langue non prise en charge)
+- [x] Réglage de tolérance (stricte / normale / indulgente) dans l'espace parent
+- [x] Prototype web : même fonction avec la Web Speech API (réglage « Répondre au micro »)
+- [ ] Essai sur de vrais téléphones iOS et Android — **à faire : build de développement** (`npx expo run:ios` / `run:android`, la reconnaissance n'existe pas dans Expo Go)
+- [ ] Séances de test avec 10 enfants (2-7 ans) ; mesure du taux de faux « c'est faux » ; ajuster les règles et les cas
 
 **Terminé quand** : sur les séances de test, ≥ 90 % des bonnes réponses sont reconnues et
 ≤ 5 % des réponses justes sont refusées ; aucune donnée audio ne sort du téléphone

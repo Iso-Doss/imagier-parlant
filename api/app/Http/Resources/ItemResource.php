@@ -26,6 +26,8 @@ class ItemResource extends JsonResource
             // What the app says when it reveals the answer: "C'est une pomme"
             'sentence' => $translation->sentence
                 ?? ($translation && $language ? $language->answerFor($translation->name) : null),
+            // Autres réponses acceptées quand l'enfant répond au micro
+            'aliases' => $translation->aliases ?? [],
             'audio_url' => $media->url($translation?->audio_path),
             'translation' => $this->when(
                 (bool) $request->attributes->get('translation_locale'),

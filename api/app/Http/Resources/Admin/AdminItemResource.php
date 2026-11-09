@@ -31,6 +31,7 @@ class AdminItemResource extends JsonResource
             'translations' => $this->translations->mapWithKeys(fn ($t) => [$t->locale => [
                 'name' => $t->name,
                 'sentence' => $t->sentence,
+                'aliases' => $t->aliases ?? [],
                 'audio_url' => $media->url($t->audio_path),
             ]]),
             'updated_at' => $this->updated_at,

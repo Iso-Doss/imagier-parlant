@@ -89,7 +89,7 @@ Exemples :
 - Couleurs, tailles et rayons depuis `src/theme.ts`.
 - Aucune dépendance native ajoutée sans vérification de conformité (voir sécurité §8).
 - Secrets : aucun ; jetons dans SecureStore.
-- Vérification : `npx tsc --noEmit` et `npx expo-doctor` sans erreur.
+- Vérification : `npm run typecheck`, `npm test` et `npx expo-doctor` sans erreur.
 
 ## 6. Prototype (`prototype/`)
 
@@ -121,7 +121,7 @@ Exemples :
 | API | `php artisan test` | Oui |
 | API | `vendor/bin/pint --test` | Oui |
 | Admin | `npm run lint && npm run build` | Oui |
-| Mobile | `npx tsc --noEmit` | Oui |
+| Mobile | `npm run typecheck && npm test` | Oui |
 | Tous | `composer audit`, `npm audit --audit-level=high` | Oui |
 
 Toute correction de bug arrive avec un test qui échouait avant la correction.

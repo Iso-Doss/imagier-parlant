@@ -31,7 +31,19 @@
     "plugins": [
       "expo-audio",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Le micro sert seulement à savoir si la réponse de l'enfant est juste. La voix n'est ni enregistrée ni envoyée.",
+          "speechRecognitionPermission": "La reconnaissance vocale se fait sur le téléphone pour comparer la réponse de l'enfant au nom de l'image. Rien n'est enregistré.",
+          "androidSpeechServicePackages": [
+            "com.google.android.as",
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      "expo-asset"
     ],
     "splash": {
       "backgroundColor": "#E7F1FA"

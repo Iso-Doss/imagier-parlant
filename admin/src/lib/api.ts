@@ -86,7 +86,7 @@ export type Category = {
   translations: CategoryTranslations
 }
 
-export type ItemTranslation = { name: string; sentence: string | null; audio_url: string | null }
+export type ItemTranslation = { name: string; sentence: string | null; aliases: string[]; audio_url: string | null }
 export type Item = {
   id: number
   category_id: number
