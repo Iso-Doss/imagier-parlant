@@ -17,6 +17,10 @@ export type Settings = {
   answerMode: AnswerMode
   /** Sévérité de la comparaison au micro */
   tolerance: Tolerance
+  /** Voix choisie par le parent, par langue (fr, en) ; absente = la plus naturelle */
+  voices: Record<string, string>
+  /** Débit de la voix */
+  speechSpeed: "slow" | "normal"
 }
 
 export const DEFAULTS: Settings = {
@@ -30,6 +34,8 @@ export const DEFAULTS: Settings = {
   autoNext: true,
   answerMode: "watch",
   tolerance: "normal",
+  voices: {},
+  speechSpeed: "normal",
 }
 
 const KEY = "imagier-settings-v1"
