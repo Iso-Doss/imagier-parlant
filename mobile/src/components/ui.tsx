@@ -1,4 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native"
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from "react-native-reanimated"
 import { mediaUrl } from "../api"
 import { fonts, hardShadow, useTheme } from "../theme"
 
@@ -9,11 +10,24 @@ export function Picture({ image, emoji, size }: { image?: string | null; emoji?:
   return <Text style={{ fontSize: size * 0.8, lineHeight: size, textAlign: "center" }}>{emoji ?? "❓"}</Text>
 }
 
+/** Toucher un bouton : il s'enfonce (0,94) puis revient en ressort (catalogue UI/UX §3.2). */
+function usePressScale() {
+  const reduced = useReducedMotion()
+  const scale = useSharedValue(1)
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+  const spring = (to: number) => { scale.value = reduced ? 1 : withSpring(to, { stiffness: 400, damping: 18 }) }
+  return { style, onPressIn: () => spring(0.94), onPressOut: () => spring(1) }
+}
+
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const t = useTheme()
+  const press = usePressScale()
   return (
+    <Animated.View style={press.style}>
     <Pressable
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       accessibilityRole="button"
       accessibilityState={{ selected }}
       style={({ pressed }) => [
@@ -23,6 +37,7 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
     >
       <Text style={{ fontFamily: fonts.bodyBold, color: selected ? t.paper : t.ink, fontSize: 15 }}>{label}</Text>
     </Pressable>
+    </Animated.View>
   )
 }
 
@@ -40,28 +55,36 @@ export function Toggle({ value, onChange, label }: { value: boolean; onChange: (
 
 export function BigButton({ label, onPress, disabled, style }: { label: string; onPress: () => void; disabled?: boolean; style?: StyleProp<ViewStyle> }) {
   const t = useTheme()
+  const press = usePressScale()
   return (
+    <Animated.View style={[style, press.style]}>
     <Pressable
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       disabled={disabled}
       accessibilityRole="button"
       style={({ pressed }) => [
         styles.big,
         { backgroundColor: t.sun, borderColor: t.edge, opacity: disabled ? 0.5 : 1 },
         pressed ? { transform: [{ translateX: 3 }, { translateY: 3 }], ...hardShadow(t.drop, 1) } : hardShadow(t.drop, 4),
-        style,
       ]}
     >
       <Text style={{ fontFamily: fonts.display, fontSize: 21, color: t.sunInk, textAlign: "center" }}>{label}</Text>
     </Pressable>
+    </Animated.View>
   )
 }
 
 export function SmallButton({ label, onPress, primary, icon }: { label?: string; onPress: () => void; primary?: boolean; icon?: string }) {
   const t = useTheme()
+  const press = usePressScale()
   return (
+    <Animated.View style={press.style}>
     <Pressable
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       accessibilityRole="button"
       accessibilityLabel={label ?? icon}
       style={({ pressed }) => [
@@ -74,6 +97,7 @@ export function SmallButton({ label, onPress, primary, icon }: { label?: string;
         {icon ? `${icon}${label ? "  " : ""}` : ""}{label ?? ""}
       </Text>
     </Pressable>
+    </Animated.View>
   )
 }
 

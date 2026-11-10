@@ -100,14 +100,18 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
 - [x] Reanimated 4 dans l'app (accueil, partie, fin) ; plus d'API `Animated` de base dans les écrans
 - [x] Partie : entrée de l'image (droite, échelle, rotation), question en fondu, chiffre qui pulse,
   micro selon le volume, 12 confettis et saut de la carte, nom écrit lettre par lettre, sortie vers la gauche
-- [ ] Partie : anneau qui devient vert, mascotte ; animations de toucher (bouton, catégorie) du catalogue
+- [x] Partie : anneau qui devient vert (✓) sur une bonne réponse
+- [x] Toucher : boutons qui s'enfoncent en ressort (0,94), cartes de catégorie qui rebondissent (1,08)
+- [ ] Mascotte (dessin à faire)
 - [ ] Transition partagée catégorie → partie
 - [x] Préchargement des 3 images et sons suivants (`src/preload.ts`)
 - [ ] Mesurer l'attente entre deux objets sur un vrai téléphone
 - [x] Fin de série festive : étoiles qui tombent, score qui compte, étoile qui danse
-- [ ] Écran de bienvenue (3 écrans), mascotte
+- [x] Écran de bienvenue au premier lancement (3 écrans joués : question, compte à rebours et réponse, micro),
+  puis « Jouer tout de suite » ou « Créer un compte » (portail parental)
 - [ ] Sous-catégories à l'accueil
-- [ ] Mise en page tablette (paysage)
+- [x] Mise en page tablette en paysage pour la partie (image à gauche, réponse à droite)
+- [ ] Mise en page tablette pour l'accueil et l'espace parent (déjà en 3-4 colonnes, à affiner)
 - [x] « Réduire les animations » du système respecté (aucune animation de mouvement, pas de confettis)
 - [ ] Tailles de texte, VoiceOver / TalkBack côté parent
 - [ ] Mode hors connexion : packs par catégorie, SQLite local, gestion de l'espace

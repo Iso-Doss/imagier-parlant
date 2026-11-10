@@ -75,6 +75,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
   const reveal = useSharedValue(0)
   const jump = useSharedValue(0)
   const [burst, setBurst] = useState(0)
+  const [ringFound, setRingFound] = useState(false)
 
   const total = settings.delay * 1000
   const secondsLeft = Math.max(1, Math.ceil((total - elapsed) / 1000))
@@ -131,6 +132,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     setPhase("count")
     verdictRef.current = null
     setVerdict(null)
+    setRingFound(false)
     let shown = settings.delay
     let answeredAt: number | null = null
     let heardSomething = false
@@ -157,6 +159,13 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     results.current.push({ item_id: item.id, result: outcome, response_ms: outcome === "correct" ? answeredAt : null })
     // La réponse est notée : la pause qui suit ne doit pas s'arrêter tout de suite
     verdictRef.current = null
+
+    // Bonne réponse : l'anneau devient vert un instant avant la réponse
+    if (outcome === "correct" && !reduced) {
+      setRingFound(true)
+      await sleep(350)
+      if (runId.current !== my) throw ABORT
+    }
 
     // 3. Answer
     setPhase("answer")
@@ -266,7 +275,9 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
   const item = items[idx]
   const cats = new Set(items.map((i) => i.category?.slug))
   const catLabel = cats.size > 1 ? s.mixed : item.category?.name ?? ""
-  const cardSize = Math.min(width - 32, height * 0.46, 460)
+  // Tablette en paysage : l'image à gauche (55 %), le texte et l'anneau à droite
+  const landscape = width > height && width >= 700
+  const cardSize = landscape ? Math.min(width * 0.5, height * 0.72, 560) : Math.min(width - 32, height * 0.46, 460)
   const word = item.name ?? ""
   const m = word.match(ARTICLE)
   // Le nom s'écrit lettre par lettre pendant qu'il est dit
@@ -289,7 +300,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.sky, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16, paddingHorizontal: 16 }}>
-      <View style={styles.wrap}>
+      <View style={[styles.wrap, landscape && { maxWidth: 1100 }]}>
         <View style={styles.bar}>
           <SmallButton icon="✕" onPress={quit} />
           <View style={{ flex: 1, gap: 4 }}>
@@ -304,15 +315,15 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
           <SmallButton icon="❚❚" onPress={() => setPause(true)} />
         </View>
 
-        <View style={styles.center}>
+        <View style={[styles.center, landscape && styles.centerRow]}>
           <Animated.View style={[styles.card, { width: cardSize, height: cardSize, borderColor: t.edge, backgroundColor: t.paper }, hardShadow(t.drop, 6), cardStyle]}>
             <Picture image={item.image_url} emoji={item.emoji} size={item.image_url ? cardSize - 8 : cardSize * 0.62} />
           </Animated.View>
           <Confetti burst={burst} />
 
-          <View style={styles.stage}>
+          <View style={[styles.stage, landscape && styles.stageSide]}>
             {phase === "question" && <Animated.Text style={[styles.question, { color: t.ink }, questionStyle]}>{language.question}</Animated.Text>}
-            {phase === "count" && <CountdownRing progress={elapsed / total} seconds={secondsLeft} />}
+            {phase === "count" && <CountdownRing progress={elapsed / total} seconds={secondsLeft} found={ringFound} />}
             {phase === "answer" && (
               <Animated.View style={[{ alignItems: "center", gap: 4 }, revealStyle]}>
                 {settings.showWord ? (
@@ -420,6 +431,8 @@ const styles = StyleSheet.create({
   metaText: { fontFamily: fonts.bodyBold, fontSize: 15, fontVariant: ["tabular-nums"] },
   track: { height: 14, borderRadius: 999, borderWidth: 2.5, overflow: "hidden" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 18 },
+  centerRow: { flexDirection: "row", gap: 32 },
+  stageSide: { flex: 1, alignSelf: "center" },
   card: { borderWidth: 4, borderRadius: 28, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   stage: { minHeight: 120, alignItems: "center", justifyContent: "center", alignSelf: "stretch" },
   question: { fontFamily: fonts.display, fontSize: 32, textAlign: "center" },
