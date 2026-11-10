@@ -7,6 +7,8 @@ import { parentStrings, type ParentStrings } from "../i18n-parent"
 import type { Tolerance } from "../lib/answerMatcher"
 import type { Settings } from "../settings"
 import { fetchPacks } from "../api"
+import { loadVoices, say } from "../audio"
+import { isNaturalVoice, rankVoices, scoreVoice, type VoiceInfo } from "../lib/voices"
 import { formatSize, packState, type PackSummary } from "../lib/packs"
 import { downloadPack, removePack, useOffline } from "../offline"
 import { micPermission, onDeviceSupported, requestMicPermission, type MicPermission } from "../speech"
@@ -28,6 +30,7 @@ export function ParentScreen({ lang, settings, update, onClose }: {
   const wide = width >= 900
   const device = (
     <>
+      <VoiceCard p={p} settings={settings} update={update} />
       <MicCard p={p} settings={settings} update={update} />
       <OfflineCard p={p} lang={lang} />
     </>
@@ -103,6 +106,73 @@ function MicCard({ p, settings, update }: { p: ParentStrings; settings: Settings
           <Text style={[styles.small, { color: t.muted }]}>{p.toleranceHelp}</Text>
         </View>
       )}
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------- Voix
+
+const VOICE_LANGS: [string, string][] = [["fr", "fr-FR"], ["en", "en-US"]]
+
+/** Voix de synthèse : la plus naturelle par défaut, le parent peut en écouter et en choisir une autre. */
+function VoiceCard({ p, settings, update }: { p: ParentStrings; settings: Settings; update: (patch: Partial<Settings>) => void }) {
+  const t = useTheme()
+  const [voices, setVoices] = useState<VoiceInfo[] | null>(null)
+  const [lang, setLang] = useState(settings.lang === "en" ? "en" : "fr")
+  useEffect(() => { loadVoices().then(setVoices).catch(() => setVoices([])) }, [])
+
+  const locale = VOICE_LANGS.find(([code]) => code === lang)?.[1] ?? "fr-FR"
+  // Les voix métalliques ne sont proposées que s'il n'y a rien de mieux
+  const all = rankVoices(voices ?? [], locale)
+  const good = all.filter((v) => (scoreVoice(v, locale) ?? 0) >= 0)
+  const ranked = (good.length ? good : all).slice(0, 6)
+  const chosen = settings.voices[lang]
+  const current = ranked.find((v) => v.identifier === chosen) ? chosen : undefined
+  const choose = (id: string | undefined) => {
+    const next = { ...settings.voices }
+    if (id) next[lang] = id
+    else delete next[lang]
+    update({ voices: next })
+  }
+  const listen = (id: string | undefined) => say(p.voiceSample(lang), locale, id ? { voice: id } : {})
+
+  return (
+    <Card>
+      <Text style={[styles.h2, { color: t.ink }]}>🗣️ {p.voice}</Text>
+      <Text style={[styles.text, { color: t.muted }]}>{p.voiceText}</Text>
+      <View style={styles.row}>
+        {VOICE_LANGS.map(([code]) => <Chip key={code} label={code === "fr" ? "Français" : "English"} selected={lang === code} onPress={() => setLang(code)} />)}
+      </View>
+      {voices === null ? <ActivityIndicator color={t.ink} /> : ranked.length === 0 ? (
+        <Text style={[styles.small, { color: t.ink }]}>{p.voiceNone}</Text>
+      ) : (
+        <View style={{ gap: 8 }}>
+          {[undefined, ...ranked.map((v) => v.identifier)].map((id) => {
+            const voice = id ? ranked.find((v) => v.identifier === id)! : ranked[0]
+            const selected = current === id
+            const label = id ? voice.name : p.voiceAuto(ranked[0].name)
+            return (
+              <Pressable key={id ?? "auto"} onPress={() => choose(id)} accessibilityRole="radio" accessibilityState={{ checked: selected }}
+                style={[styles.voice, { borderColor: t.edge, backgroundColor: selected ? t.sun : t.paper }]}>
+                <View style={[styles.dot, { borderColor: t.edge, backgroundColor: selected ? t.ink : "transparent" }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.label, { color: selected ? t.sunInk : t.ink }]} numberOfLines={1}>{label}</Text>
+                  {id && isNaturalVoice(voice) && <Text style={[styles.small, { color: selected ? t.sunInk : t.leaf }]}>★ {p.voiceNatural}</Text>}
+                </View>
+                <SmallButton icon="▶" label={p.voiceListen} onPress={() => listen(id ?? ranked[0].identifier)} />
+              </Pressable>
+            )
+          })}
+        </View>
+      )}
+      {voices !== null && !ranked.some(isNaturalVoice) && <Text style={[styles.small, { color: t.muted }]}>{p.voiceMore}</Text>}
+      <View style={{ gap: 8 }}>
+        <Text style={[styles.label, { color: t.ink }]}>{p.voiceSpeed}</Text>
+        <View style={styles.row}>
+          <Chip label={p.voiceSlow} selected={settings.speechSpeed === "slow"} onPress={() => update({ speechSpeed: "slow" })} />
+          <Chip label={p.voiceNormal} selected={settings.speechSpeed === "normal"} onPress={() => update({ speechSpeed: "normal" })} />
+        </View>
+      </View>
     </Card>
   )
 }
@@ -522,6 +592,8 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: fonts.display, fontSize: 26 },
   thumbs: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   thumb: { width: 48, height: 48, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  voice: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2.5, borderRadius: 16, paddingVertical: 8, paddingHorizontal: 12 },
+  dot: { width: 18, height: 18, borderRadius: 9, borderWidth: 2.5 },
   pack: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 2.5, borderRadius: 16, padding: 10 },
   bar2: { height: 8, borderRadius: 4, borderWidth: 1.5, overflow: "hidden", marginTop: 4 },
   avatars: { flexDirection: "row", flexWrap: "wrap", gap: 6 },

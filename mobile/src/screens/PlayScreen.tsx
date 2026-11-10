@@ -13,7 +13,6 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useKeepAwake } from "expo-keep-awake"
 import * as Haptics from "expo-haptics"
-import * as Speech from "expo-speech"
 import { mediaUrl, type Item, type Series } from "../api"
 import type { AnswerResult } from "../account"
 import { playChime, playRecording, playTick, say, stopSpeaking } from "../audio"
@@ -225,8 +224,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     if (style === "tick") playTick(n === 1)
     else if (style === "voice") {
       const word = NUMBERS[language.code]?.[n] ?? String(n)
-      Speech.stop()
-      Speech.speak(word, { language: language.tts_locale, rate: 1.1 })
+      say(word, language.tts_locale, { quick: true })
     }
   }
 

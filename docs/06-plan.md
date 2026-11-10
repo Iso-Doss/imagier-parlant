@@ -18,6 +18,7 @@ gantt
   Phase 2 · Comptes et profils           :         p2, after p1, 21d
   Phase 3 · Écoute de la réponse         :         p3, after p1, 21d
   Phase 4 · Animations et finitions      :         p4, after p3, 14d
+  Phase 4 bis · Plus de contenu, meilleure voix : p4b, after p4, 14d
   section Contenu
   Phase 5 · Catalogue à 50 000 objets    :         p5, after p1, 56d
   section Sortie
@@ -123,6 +124,61 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
 
 **Terminé quand** : 3 enfants sur 3 lancent une partie seuls, et un parent non prévenu trouve
 l'app « fluide » sans relancer d'écran.
+
+## Phase 4 bis — Plus de contenu et une meilleure voix (2 semaines)
+
+Deux chantiers demandés après la phase 4, avant le grand catalogue de la phase 5.
+
+### A. Une voix plus agréable
+
+Aujourd'hui, l'app lit la question et la réponse avec la voix par défaut du téléphone
+(`expo-speech`), un peu plus aiguë (`pitch` 1,1) ; un enregistrement de l'objet passe avant
+s'il existe.
+
+Sur le téléphone (rapide, gratuit) :
+
+- [x] Choisir automatiquement la meilleure voix installée pour chaque langue
+  (voix « améliorées » ou « premium » d'iOS, voix haute qualité hors ligne d'Android) :
+  `src/lib/voices.ts`, recopié dans le prototype
+- [x] Espace parent : liste des voix disponibles, bouton « Écouter » pour essayer, choix gardé
+  dans les réglages ; explication pour télécharger une voix de meilleure qualité
+- [x] Débit et hauteur réglés pour les petits (0,88, ou 0,72 en « Lent » ; hauteur 1,05)
+- [x] Prototype web : même choix de la meilleure voix du navigateur
+- [ ] Essayer sur iPhone et Android avec une voix premium téléchargée
+
+Sur le serveur (meilleure qualité, la même sur tous les téléphones) :
+
+- [ ] Choisir le fournisseur de synthèse vocale (voir « Décisions à prendre ») : écouter
+  une vingtaine de mots d'enfant dans chaque voix candidate, en français et en anglais
+- [ ] Commande `catalog:audio --missing` : génère le son de chaque nom et de chaque phrase
+  (« C'est une pomme »), volume égalisé, AAC 64 kbit/s, rangé comme les enregistrements actuels
+- [ ] Liste de prononciations corrigées (mots mal lus par la synthèse) modifiable dans l'admin
+- [ ] Admin : écouter, régénérer ou remplacer par une voix enregistrée, objet par objet
+- [ ] Les sons générés partent aussi dans les packs hors connexion (déjà prévu par `PackBuilder`)
+
+**Terminé quand** : chaque objet du catalogue a un son généré dans chaque langue, et
+5 parents sur 5 préfèrent la nouvelle voix à l'ancienne à l'écoute à l'aveugle.
+
+### B. Une base plus fournie
+
+Aujourd'hui : 11 catégories, 157 objets, en émojis, français et anglais
+(`api/database/seeders/data/catalog.php`, recopié dans le prototype).
+
+- [ ] Passer à ~25 catégories et ~500 objets. Nouvelles catégories possibles : la ferme,
+  la mer, les insectes, les oiseaux, le corps, les métiers, les sports, la musique, la météo,
+  les formes et couleurs, les émotions, la ville, les outils, les fêtes
+- [ ] Compléter les catégories existantes (15 à 25 objets chacune)
+- [ ] Pour chaque objet : nom français et anglais avec l'article, phrase quand le modèle
+  ne convient pas (pluriels), variantes acceptées au micro (« vélo » / « bicyclette »)
+- [ ] Vérifications automatiques : pas de doublon, chaque émoji s'affiche sur iOS et Android,
+  chaque nom passe dans le comparateur de réponses (cas ajoutés à `shared/answer-cases.json`)
+- [ ] Le seeder ajoute et met à jour sans rien supprimer (déjà le cas) : les progrès des enfants sont gardés
+- [ ] Prototype web : même catalogue, généré depuis le fichier de l'API (comme le comparateur)
+- [ ] Ensuite, les vraies images (illustrations) remplacent les émojis catégorie par catégorie
+  (style à décider, voir « Décisions à prendre »)
+
+**Terminé quand** : 500 objets publiés en français et en anglais, sans doublon ni émoji
+manquant, jouables en ligne et hors connexion.
 
 ## Phase 5 — Catalogue à 50 000 objets (8 semaines, en continu)
 

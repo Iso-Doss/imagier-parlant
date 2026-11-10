@@ -16,7 +16,7 @@ import { LAUNCH_MS, LaunchOverlay, type LaunchStage, type Rect } from "./src/com
 import { useReducedMotion } from "react-native-reanimated"
 import { ParentScreen } from "./src/screens/ParentScreen"
 import type { PlayResult } from "./src/screens/PlayScreen"
-import { initAudio } from "./src/audio"
+import { initAudio, setVoicePrefs } from "./src/audio"
 import { DoneScreen } from "./src/screens/DoneScreen"
 import { HomeScreen } from "./src/screens/HomeScreen"
 import { PlayScreen } from "./src/screens/PlayScreen"
@@ -128,6 +128,9 @@ function Main() {
       answers: r,
     }).catch(() => {})
   }
+
+  // Voix et débit choisis dans l'espace parent
+  useEffect(() => { setVoicePrefs({ voices: settings.voices, speed: settings.speechSpeed }) }, [settings.voices, settings.speechSpeed])
 
   // Profil choisi : on reprend son temps de réflexion (réglé selon l'âge)
   const profileDelay = acc.activeProfile?.settings?.delay

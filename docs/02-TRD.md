@@ -43,6 +43,7 @@ objet derrière un CDN ; l'API ne renvoie que leurs adresses.
 | Fichiers | S3 compatible (AWS S3, Cloudflare R2, Scaleway) + CDN | Coût, débit, cache près des utilisateurs |
 | Traitement d'image | Intervention Image (libvips) dans un worker | Miniatures et WebP/AVIF générés à l'import |
 | Synthèse vocale | Service neuronal en nuage (Google, Azure ou ElevenLabs) appelé par lots | Sons de qualité, stockés une fois pour toutes |
+| Voix sur l'appareil (en attendant les sons générés) | `expo-speech` / `speechSynthesis` ; la voix la plus naturelle installée est choisie par `src/lib/voices.ts` (premium/améliorée d'abord, voix fantaisie écartées), le parent peut en choisir une autre | Meilleure voix sans coût ni réseau |
 | Administration | Vite 6, React 19, TypeScript, Tailwind 4, shadcn/ui, TanStack Query & Table | Déjà en place |
 | Mobile | Expo SDK 58, React Native 0.88, Reanimated 4, expo-audio, expo-speech | Déjà en place, une base pour iOS et Android |
 | Reconnaissance vocale mobile | `expo-speech-recognition` (reconnaissance native iOS/Android, sur l'appareil si disponible) | Pas d'envoi de la voix au serveur |
