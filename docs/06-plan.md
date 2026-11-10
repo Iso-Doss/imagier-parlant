@@ -115,6 +115,7 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
 - [x] Mise en page tablette en paysage pour la partie (image à gauche, réponse à droite)
 - [x] Mise en page tablette : accueil en deux colonnes en paysage (catégories | série, sans étapes),
   espace parent en deux colonnes dès 900 px (compte | micro et hors connexion)
+- [x] En-tête de l'accueil : langue, thème (téléphone / clair / sombre) et compte côte à côte
 - [x] « Réduire les animations » du système respecté (aucune animation de mouvement, pas de confettis)
 - [ ] Tailles de texte, VoiceOver / TalkBack côté parent
 - [x] Mode hors connexion : packs par catégorie (`/packs`), téléchargement depuis l'espace parent,

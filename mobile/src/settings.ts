@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { useEffect, useState } from "react"
 import type { Tolerance } from "./lib/answerMatcher"
+import type { ThemePref } from "./theme"
 
 export type CountStyle = "tick" | "voice" | "silent"
 /** Comment l'enfant répond : au micro, le parent valide ✓/✗, ou on regarde seulement (comme la vidéo) */
@@ -21,6 +22,8 @@ export type Settings = {
   voices: Record<string, string>
   /** Débit de la voix */
   speechSpeed: "slow" | "normal"
+  /** Thème : celui du téléphone, clair ou sombre */
+  theme: ThemePref
 }
 
 export const DEFAULTS: Settings = {
@@ -36,6 +39,7 @@ export const DEFAULTS: Settings = {
   tolerance: "normal",
   voices: {},
   speechSpeed: "normal",
+  theme: "system",
 }
 
 const KEY = "imagier-settings-v1"

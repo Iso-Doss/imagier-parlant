@@ -106,6 +106,14 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const selected = new Set(settings.categories)
   const allSelected = !!categories && categories.length > 0 && categories.every((c) => selected.has(c.slug))
 
+  // En-tête : langue et thème
+  const langs = languages.length ? languages.map((l) => l.code) : ["fr", "en"]
+  const currentLang = languages.find((l) => l.code === settings.lang)
+  const nextLanguage = () => update({ lang: langs[(langs.indexOf(settings.lang) + 1) % langs.length] })
+  const themes = ["system", "light", "dark"] as const
+  const themeName = settings.theme === "light" ? s.themeLight : settings.theme === "dark" ? s.themeDark : s.themeSystem
+  const nextTheme = () => update({ theme: themes[(themes.indexOf(settings.theme) + 1) % themes.length] })
+
   const toggleCat = (slug: string) =>
     update({ categories: selected.has(slug) ? settings.categories.filter((c) => c !== slug) : [...settings.categories, slug] })
 
@@ -131,13 +139,6 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           </View>
         )}
 
-        {languages.length > 1 && (
-          <View style={styles.chips}>
-            {languages.map((l) => (
-              <Chip key={l.code} label={l.name} selected={settings.lang === l.code} onPress={() => update({ lang: l.code })} />
-            ))}
-          </View>
-        )}
 
         <View style={styles.sectionHead}>
           <Text style={[styles.h2, { color: t.ink }]}>{s.chooseCats}</Text>
@@ -235,10 +236,23 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
               <Text style={{ fontFamily: fonts.body, color: t.muted }}>{s.tagline}</Text>
             </View>
           </View>
-          <Pressable onPress={onParent} accessibilityRole="button" accessibilityLabel="Espace parent" hitSlop={8}
-            style={[styles.lock, { borderColor: t.edge, backgroundColor: t.paper }]}>
-            <Text style={{ fontSize: 20 }}>🔒</Text>
-          </Pressable>
+          <View style={styles.tools}>
+            {/* Langue : passe à la suivante */}
+            <HeadButton label={s.languageButton(currentLang?.name ?? settings.lang)} onPress={nextLanguage}>
+              <Text style={[styles.toolText, { color: t.ink }]}>{settings.lang.toUpperCase()}</Text>
+            </HeadButton>
+            {/* Thème : téléphone → clair → sombre */}
+            <HeadButton label={s.theme(themeName)} onPress={nextTheme}>
+              <Text style={{ fontSize: 19 }}>{settings.theme === "light" ? "☀️" : settings.theme === "dark" ? "🌙" : "🌓"}</Text>
+            </HeadButton>
+            {/* Compte : connexion ou création, derrière le portail parental */}
+            <HeadButton label={acc.account ? s.accountSigned(acc.account.email) : s.account} onPress={onParent}>
+              <Text style={{ fontSize: 19 }}>{acc.activeProfile ? AVATARS[acc.activeProfile.avatar] ?? "👤" : "👤"}</Text>
+              <View style={[styles.lockBadge, { backgroundColor: acc.account ? t.leaf : t.sun, borderColor: t.edge }]}>
+                <Text style={{ fontSize: 9 }}>{acc.account ? "✓" : "🔒"}</Text>
+              </View>
+            </HeadButton>
+          </View>
         </View>
 
         {!wide && <View style={styles.steps} accessibilityRole="tablist">
@@ -291,6 +305,17 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
         )}
       </View>
     </View>
+  )
+}
+
+/** Bouton carré de l'en-tête (langue, thème, compte) */
+function HeadButton({ label, onPress, children }: { label: string; onPress: () => void; children: React.ReactNode }) {
+  const t = useTheme()
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={4}
+      style={({ pressed }) => [styles.tool, { borderColor: t.edge, backgroundColor: t.paper }, pressed ? { transform: [{ translateX: 1 }, { translateY: 1 }] } : hardShadow(t.drop, 2)]}>
+      {children}
+    </Pressable>
   )
 }
 
@@ -352,7 +377,10 @@ function Setting({ label, children }: { label: string; children: React.ReactNode
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, gap: 18, width: "100%", maxWidth: 760, alignSelf: "center" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  lock: { width: 46, height: 46, borderRadius: 14, borderWidth: 2.5, alignItems: "center", justifyContent: "center" },
+  tools: { flexDirection: "row", gap: 8 },
+  tool: { width: 44, height: 44, borderRadius: 14, borderWidth: 2.5, alignItems: "center", justifyContent: "center" },
+  toolText: { fontFamily: fonts.display, fontSize: 16 },
+  lockBadge: { position: "absolute", right: -6, bottom: -6, width: 18, height: 18, borderRadius: 9, borderWidth: 1.5, alignItems: "center", justifyContent: "center" },
   label: { fontFamily: fonts.bodyBold, fontSize: 15 },
   who: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, borderWidth: 2.5 },
   brand: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1 },
