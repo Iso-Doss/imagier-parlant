@@ -1,5 +1,6 @@
 import Constants from "expo-constants"
 import { Platform } from "react-native"
+import type { Pack, PackSummary } from "./lib/packs"
 
 /**
  * Where the Laravel API lives.
@@ -47,13 +48,16 @@ export type Item = {
 }
 export type Series = { language: Language; count: number; distinct_items: number; review_items?: number; items: Item[] }
 
+/** Le serveur ne répond pas (pas de réseau) : l'app peut alors jouer avec les catégories téléchargées. */
+export class NetworkError extends Error {}
+
 async function get<T>(path: string, params: Record<string, string | number | undefined> = {}, token?: string | null): Promise<T> {
   const qs = Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&")
   let res: Response
   try {
     res = await fetch(`${API_URL}/api/v1${path}${qs ? `?${qs}` : ""}`, { headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } })
   } catch {
-    throw new Error(`Impossible de joindre le serveur (${API_URL}).`)
+    throw new NetworkError(`Impossible de joindre le serveur (${API_URL}).`)
   }
   if (!res.ok) throw new Error(`Le serveur a répondu ${res.status}.`)
   return res.json()
@@ -64,3 +68,7 @@ export const fetchCategories = (lang: string) => get<{ data: Category[] }>("/cat
 /** Avec un profil (et le jeton du parent), la série reprend des objets « à revoir ». */
 export const fetchSeries = (opts: { lang: string; categories: string[]; count: number; translation?: string; profile?: string; token?: string | null }) =>
   get<Series>("/series", { lang: opts.lang, categories: opts.categories.join(","), count: opts.count, translation: opts.translation, profile: opts.profile }, opts.token)
+
+/** Packs hors connexion : liste (taille, version) et contenu d'une catégorie */
+export const fetchPacks = (lang: string) => get<{ data: PackSummary[] }>("/packs", { lang }).then((r) => r.data)
+export const fetchPack = (slug: string) => get<Pack>(`/packs/${encodeURIComponent(slug)}`)

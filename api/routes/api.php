@@ -13,6 +13,8 @@ Route::prefix('v1')->group(function () {
         Route::get('categories', [V1\CategoryController::class, 'index']);
         Route::get('categories/{category:slug}', [V1\CategoryController::class, 'show']);
         Route::get('series', V1\SeriesController::class);
+        Route::get('packs', [V1\PackController::class, 'index']);
+        Route::get('packs/{category:slug}', [V1\PackController::class, 'show']);
     });
 
     // ---- Comptes parents (application mobile) ----

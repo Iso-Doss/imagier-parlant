@@ -7,7 +7,10 @@ import { Nunito_600SemiBold, Nunito_800ExtraBold } from "@expo-google-fonts/nuni
 import * as Crypto from "expo-crypto"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { AccountProvider, useAccount } from "./src/account"
-import { fetchSeries, type Series } from "./src/api"
+import { NetworkError, fetchSeries, type Series } from "./src/api"
+import { coversCategories, localizeSeries, seriesFromPacks } from "./src/lib/packs"
+import { loadOffline, offlineState } from "./src/offline"
+import { strings } from "./src/i18n"
 import { ParentGate } from "./src/components/ParentGate"
 import { ParentScreen } from "./src/screens/ParentScreen"
 import type { PlayResult } from "./src/screens/PlayScreen"
@@ -46,6 +49,7 @@ function Main() {
   useEffect(() => {
     AsyncStorage.getItem(WELCOME_KEY).then((v) => setWelcome(v !== "done")).catch(() => setWelcome(false))
     initAudio().catch(() => {})
+    loadOffline().catch(() => {})
   }, [])
   const endWelcome = (next: "play" | "account") => {
     setWelcome(false)
@@ -63,15 +67,26 @@ function Main() {
     try {
       await initAudio()
       const other = settings.lang === "fr" ? "en" : "fr"
-      const s = await fetchSeries({
-        lang: settings.lang,
-        categories: settings.categories,
-        count: settings.count,
-        translation: settings.showTranslation ? other : undefined,
-        profile: acc.activeProfile?.id,
-        token: acc.token,
-      })
-      if (!s.items.length) throw new Error("Ces catégories n'ont pas encore d'images.")
+      const translation = settings.showTranslation ? other : undefined
+      const off = offlineState()
+      let s: Series | null
+      try {
+        // Les fichiers déjà téléchargés servent aussi en ligne : moins d'attente, moins de données
+        s = localizeSeries(await fetchSeries({
+          lang: settings.lang,
+          categories: settings.categories,
+          count: settings.count,
+          translation,
+          profile: acc.activeProfile?.id,
+          token: acc.token,
+        }), off.files)
+      } catch (e) {
+        if (!(e instanceof NetworkError)) throw e
+        // Pas de réseau : la série est composée avec les catégories téléchargées
+        if (!coversCategories(off.packs, settings.categories)) throw new Error(strings(settings.lang).offlineMissing)
+        s = seriesFromPacks(off.packs, { lang: settings.lang, categories: settings.categories, count: settings.count, translation }, off.files)
+      }
+      if (!s?.items.length) throw new Error("Ces catégories n'ont pas encore d'images.")
       setSeries(s)
       beginPlay()
     } catch (e) {

@@ -114,7 +114,9 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
 - [ ] Mise en page tablette pour l'accueil et l'espace parent (déjà en 3-4 colonnes, à affiner)
 - [x] « Réduire les animations » du système respecté (aucune animation de mouvement, pas de confettis)
 - [ ] Tailles de texte, VoiceOver / TalkBack côté parent
-- [ ] Mode hors connexion : packs par catégorie, SQLite local, gestion de l'espace
+- [x] Mode hors connexion : packs par catégorie (`/packs`), téléchargement depuis l'espace parent,
+  mise à jour et suppression, espace utilisé, partie sans réseau avec les catégories téléchargées
+- [ ] Hors connexion : essayer sur un vrai téléphone (avion), objets « à revoir » sans réseau
 - [ ] Mesures : 60 images/s sur un Android d'entrée de gamme (profilage)
 
 **Terminé quand** : 3 enfants sur 3 lancent une partie seuls, et un parent non prévenu trouve
