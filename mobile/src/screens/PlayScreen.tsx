@@ -24,7 +24,7 @@ import { hintsFor, matchAnswer } from "../lib/answerMatcher"
 import { preloadItems } from "../preload"
 import { listen } from "../speech"
 import type { Settings } from "../settings"
-import { fonts, hardShadow, useTheme } from "../theme"
+import { TEXT_SCALE, fonts, hardShadow, useTheme } from "../theme"
 
 type Phase = "question" | "count" | "answer"
 const ABORT = Symbol("abort")
@@ -300,17 +300,17 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
     <View style={{ flex: 1, backgroundColor: t.sky, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 16, paddingHorizontal: 16 }}>
       <View style={[styles.wrap, landscape && { maxWidth: 1100 }]}>
         <View style={styles.bar}>
-          <SmallButton icon="✕" onPress={quit} />
+          <SmallButton icon="✕" a11yLabel={s.quit} onPress={quit} />
           <View style={{ flex: 1, gap: 4 }}>
             <View style={styles.meta}>
-              <Text style={[styles.metaText, { color: t.ink }]}>{idx + 1} / {items.length}</Text>
-              <Text style={[styles.metaText, { color: t.muted }]} numberOfLines={1}>{catLabel}</Text>
+              <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.metaText, { color: t.ink }]} accessibilityLabel={s.progress(idx + 1, items.length)}>{idx + 1} / {items.length}</Text>
+              <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.metaText, { color: t.muted }]} numberOfLines={1}>{catLabel}</Text>
             </View>
             <View style={[styles.track, { borderColor: t.edge, backgroundColor: t.paper }]}>
               <View style={{ height: "100%", width: `${((idx + (phase === "answer" ? 1 : 0)) / items.length) * 100}%`, backgroundColor: t.leaf }} />
             </View>
           </View>
-          <SmallButton icon="❚❚" onPress={() => setPause(true)} />
+          <SmallButton icon="❚❚" a11yLabel={s.pause} onPress={() => setPause(true)} />
         </View>
 
         <View style={[styles.center, landscape && styles.centerRow]}>
@@ -320,21 +320,21 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
           <Confetti burst={burst} />
 
           <View style={[styles.stage, landscape && styles.stageSide]}>
-            {phase === "question" && <Animated.Text style={[styles.question, { color: t.ink }, questionStyle]}>{language.question}</Animated.Text>}
+            {phase === "question" && <Animated.Text maxFontSizeMultiplier={TEXT_SCALE.huge} accessibilityRole="header" style={[styles.question, { color: t.ink }, questionStyle]}>{language.question}</Animated.Text>}
             {phase === "count" && <CountdownRing progress={elapsed / total} seconds={secondsLeft} found={ringFound} />}
             {phase === "answer" && (
-              <Animated.View style={[{ alignItems: "center", gap: 4 }, revealStyle]}>
+              <Animated.View style={[{ alignItems: "center", gap: 4 }, revealStyle]} accessibilityLiveRegion="polite">
                 {settings.showWord ? (
-                  <Text style={[styles.word, { color: t.ink }]} adjustsFontSizeToFit numberOfLines={2} accessibilityLabel={word}>
+                  <Text maxFontSizeMultiplier={TEXT_SCALE.huge} style={[styles.word, { color: t.ink }]} adjustsFontSizeToFit numberOfLines={2} accessibilityLabel={word}>
                     {shownArticle ? <Text style={[styles.article, { color: t.muted }]}>{shownArticle}</Text> : null}
                     {shownRest || "\u00a0"}
                   </Text>
                 ) : (
-                  <Text style={[styles.said, { color: t.leaf }]}>{item.sentence} !</Text>
+                  <Text maxFontSizeMultiplier={TEXT_SCALE.huge} style={[styles.said, { color: t.leaf }]}>{item.sentence} !</Text>
                 )}
-                {judged && verdict === "correct" && <Text style={[styles.cheer, { color: t.leaf }]}>{s.bravo}</Text>}
+                {judged && verdict === "correct" && <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.cheer, { color: t.leaf }]}>{s.bravo}</Text>}
                 {settings.showTranslation && item.translation && (
-                  <Text style={[styles.translation, { color: t.muted }]}>{item.translation}</Text>
+                  <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.translation, { color: t.muted }]}>{item.translation}</Text>
                 )}
               </Animated.View>
             )}
@@ -364,7 +364,7 @@ export function PlayScreen({ series, settings, onQuit, onDone }: {
 
       {paused && (
         <View style={[StyleSheet.absoluteFill, styles.pauseLayer, { backgroundColor: t.sky + "F2" }]}>
-          <Text style={[styles.question, { color: t.ink, fontSize: 40 }]}>{s.paused}</Text>
+          <Text maxFontSizeMultiplier={TEXT_SCALE.huge} accessibilityRole="header" style={[styles.question, { color: t.ink, fontSize: 40 }]}>{s.paused}</Text>
           <BigButton label={`▶  ${s.resume}`} onPress={() => setPause(false)} />
           <SmallButton label={s.quit} onPress={quit} />
         </View>
@@ -399,14 +399,15 @@ function JudgeButton({ label, icon, color, onPress, disabled }: { label: string;
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => [
         styles.judge,
         { borderColor: t.edge, backgroundColor: color, opacity: disabled ? 0.45 : 1 },
         pressed ? { transform: [{ translateX: 3 }, { translateY: 3 }], ...hardShadow(t.drop, 1) } : hardShadow(t.drop, 4),
       ]}
     >
-      <Text style={styles.judgeIcon}>{icon}</Text>
-      <Text style={styles.judgeLabel}>{label}</Text>
+      <Text style={styles.judgeIcon} maxFontSizeMultiplier={TEXT_SCALE.kid}>{icon}</Text>
+      <Text style={styles.judgeLabel} maxFontSizeMultiplier={TEXT_SCALE.button}>{label}</Text>
     </Pressable>
   )
 }

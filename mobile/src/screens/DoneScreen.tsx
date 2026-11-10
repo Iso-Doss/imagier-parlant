@@ -7,7 +7,7 @@ import { playChime } from "../audio"
 import { CountUp, FallingStars, Wiggle } from "../components/motion"
 import { BigButton, Picture, SmallButton } from "../components/ui"
 import { strings } from "../i18n"
-import { fonts, hardShadow, useTheme } from "../theme"
+import { TEXT_SCALE, fonts, hardShadow, useTheme } from "../theme"
 
 export function DoneScreen({ series, results, lang, onAgain, onHome }: { series: Series; results: PlayResult[]; lang: string; onAgain: () => void; onHome: () => void }) {
   const t = useTheme()
@@ -27,12 +27,12 @@ export function DoneScreen({ series, results, lang, onAgain, onHome }: { series:
     <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 32, paddingBottom: insets.bottom + 32 }]}>
       <Wiggle>
         <View style={[styles.star, { backgroundColor: t.sun, borderColor: t.edge }, hardShadow(t.drop, 4)]}>
-          <Text style={{ fontSize: 40, color: t.sunInk }}>★</Text>
+          <Text allowFontScaling={false} accessible={false} aria-hidden style={{ fontSize: 40, color: t.sunInk }}>★</Text>
         </View>
       </Wiggle>
-      <Text style={[styles.title, { color: t.ink }]}>{s.bravo}</Text>
+      <Text accessibilityRole="header" maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.title, { color: t.ink }]}>{s.bravo}</Text>
       {judged.length > 0 && (
-        <View style={styles.score} accessibilityLabel={`${found} / ${judged.length}`}>
+        <View style={styles.score} accessible accessibilityLabel={`${found} / ${judged.length}`}>
           <CountUp to={found} style={[styles.scoreValue, { color: t.leaf }]} />
           <Text style={[styles.scoreValue, { color: t.muted }]}>/ {judged.length}</Text>
         </View>
@@ -41,7 +41,7 @@ export function DoneScreen({ series, results, lang, onAgain, onHome }: { series:
       {missed.size > 0 && <Text style={[styles.text, { color: t.ink }]}>{s.toReview}</Text>}
       <View style={styles.grid}>
         {unique.filter((i) => !missed.size || missed.has(i.id)).map((i) => (
-          <View key={i.id} style={[styles.tile, { backgroundColor: t.paper, borderColor: t.edge }]} accessibilityLabel={i.name ?? undefined}>
+          <View key={i.id} style={[styles.tile, { backgroundColor: t.paper, borderColor: t.edge }]} accessible accessibilityRole="image" accessibilityLabel={i.name ?? undefined}>
             <Picture image={i.thumb_url ?? i.image_url} emoji={i.emoji} size={i.image_url ? 48 : 34} />
           </View>
         ))}

@@ -82,14 +82,6 @@ const words = (s: string) => slug(s).split("-").filter((w) => w && !STOP.has(w))
 /** « une voiture de police » contient « une voiture » : un nom plus précis, accepté sans souci. */
 const moreSpecific = (longer: string, shorter: string) => words(shorter).every((w) => words(longer).includes(w));
 
-// Paires que le comparateur confond encore (sons trop proches) : à corriger dans le comparateur, pas dans le catalogue
-const KNOWN = new Set([
-  "vetements (fr) : un t-shirt → un short",
-  "vetements (en) : a T-shirt → shorts",
-  "repas (en) : an ice cream → rice",
-  "ville (en) : a bus stop → a shop",
-  "bain (fr) : du papier toilette → un panier",
-]);
 
 test("au micro, deux objets d'une même catégorie ne se confondent pas", () => {
   const clashes: string[] = [];
@@ -99,7 +91,7 @@ test("au micro, deux objets d'une même catégorie ne se confondent pas", () => 
       for (const lang of ["fr", "en"] as const) {
         if (moreSpecific(b[lang], a[lang])) continue
         const key = `${c.slug} (${lang}) : ${b[lang]} → ${a[lang]}`;
-        if (matchAnswer(b[lang], forms(a, lang), { lang }) === "correct" && !KNOWN.has(key)) clashes.push(key);
+        if (matchAnswer(b[lang], forms(a, lang), { lang }) === "correct") clashes.push(key);
       }
     }
   }

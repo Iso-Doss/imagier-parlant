@@ -125,6 +125,11 @@ de la phrase dite (un ou plusieurs mots collés, pour « c'est une belle pomme �
 - jusqu'au seuil de distance de Levenshtein, si les codes phonétiques ne diffèrent que d'un
   signe (deux en indulgente). Seuil : 0 jusqu'à 3 lettres, 1 jusqu'à 5, 2 au-delà ; +1 en indulgente.
 
+Les deux derniers cas (à peu près) ne valent que pour **toute** la phrase dite : un morceau
+d'une phrase plus longue doit être exact ou se prononcer pareil. Sinon « t-shirt » serait
+accepté pour « short », « bus stop » pour « shop » ou « papier toilette » pour « panier » ;
+ces réponses donnent « presque ».
+
 Une première lettre différente ajoute 2 points (« gâteau » n'est pas « bateau »), sauf si
 l'enfant a avalé le début (« apin ») ou fait une substitution courante (« zirafe », « sien »).
 Une réponse proche mais refusée renvoie « presque » : l'app affiche « Presque ! » et continue

@@ -117,7 +117,12 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
   espace parent en deux colonnes dès 900 px (compte | micro et hors connexion)
 - [x] En-tête de l'accueil : langue, thème (téléphone / clair / sombre) et compte côte à côte
 - [x] « Réduire les animations » du système respecté (aucune animation de mouvement, pas de confettis)
-- [ ] Tailles de texte, VoiceOver / TalkBack côté parent
+- [x] Tailles de texte : l'app suit le réglage du téléphone (sans limite côté parent ; limité à ×1,3
+  sur les grands textes de l'enfant, ×1,6 sur les boutons, qui grandissent au lieu de couper le texte)
+- [x] VoiceOver / TalkBack : titres annoncés, boutons à icône nommés (« Quitter », « Pause »),
+  états cochés / choisis, erreurs annoncées dès qu'elles apparaissent, émojis non lus
+  (le lecteur d'écran ne souffle pas la réponse), « Image 3 sur 10 »
+- [ ] Essayer avec VoiceOver et TalkBack et un très grand texte sur de vrais téléphones
 - [x] Mode hors connexion : packs par catégorie (`/packs`), téléchargement depuis l'espace parent,
   mise à jour et suppression, espace utilisé, partie sans réseau avec les catégories téléchargées
 - [ ] Hors connexion : essayer sur un vrai téléphone (avion), objets « à revoir » sans réseau
@@ -173,7 +178,8 @@ dans `api/database/seeders/data/catalog.json` (lu par le seeder, recopié dans l
   ne convient pas (pluriels), variantes acceptées au micro (« vélo » / « bicyclette »)
 - [x] Vérifications automatiques (`mobile/tests/catalog.test.ts`) : pas de doublon d'émoji ni de référence,
   article français et a / an anglais corrects, phrase pour les pluriels, chaque nom et variante reconnus
-  au micro, et deux objets d'une même catégorie jamais confondus (5 paires connues du comparateur notées)
+  au micro, et deux objets d'une même catégorie jamais confondus (les 5 paires que le comparateur
+  confondait sont corrigées : un morceau de phrase doit être exact)
 - [ ] Vérifier sur iOS et Android que chaque émoji s'affiche (aucun n'est plus récent qu'Unicode 14)
 - [x] Le seeder ajoute et met à jour sans rien supprimer (déjà le cas) : les progrès des enfants sont gardés
 - [x] Prototype web : même catalogue, généré depuis le fichier de l'API (comme le comparateur)

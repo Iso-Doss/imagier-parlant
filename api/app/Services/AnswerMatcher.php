@@ -143,6 +143,7 @@ class AnswerMatcher
             $key = $this->phonetic($compact, $lang);
 
             foreach ($candidates as $candidate) {
+                $said = str_replace(' ', '', $candidate);
                 foreach ($this->windows(explode(' ', $candidate), count(explode(' ', $target))) as $piece) {
                     if ($piece === $compact) {
                         return 'correct';
@@ -154,6 +155,15 @@ class AnswerMatcher
                     $sound = $this->phonetic($piece, $lang);
                     if (strlen($key) >= 2 && $sound === $key) {
                         return 'correct';
+                    }
+                    // Un morceau d'une phrase plus longue (« shirt » dans « t-shirt », « stop » dans « bus stop »)
+                    // doit être exact : à peu près, ce serait souvent un autre mot.
+                    if ($piece !== $said) {
+                        if ($distance <= $limit + 1 && $distance / strlen($compact) <= 0.34) {
+                            $close = true;
+                        }
+
+                        continue;
                     }
                     // Au-delà d'une lettre d'écart, il faut aussi que les deux mots sonnent presque pareil.
                     if ($distance <= min($limit, 1)) {

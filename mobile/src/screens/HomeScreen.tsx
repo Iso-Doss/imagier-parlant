@@ -11,7 +11,7 @@ import type { Rect } from "../components/LaunchOverlay"
 import { strings } from "../i18n"
 import { micPermission } from "../speech"
 import type { AnswerMode, CountStyle, Settings } from "../settings"
-import { fonts, hardShadow, tintFor, useTheme } from "../theme"
+import { TEXT_SCALE, fonts, hardShadow, tintFor, useTheme } from "../theme"
 
 type Props = {
   settings: Settings
@@ -141,9 +141,9 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
 
 
         <View style={styles.sectionHead}>
-          <Text style={[styles.h2, { color: t.ink }]}>{s.chooseCats}</Text>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={TEXT_SCALE.button} style={[styles.h2, { color: t.ink }]}>{s.chooseCats}</Text>
           {categories && categories.length > 0 && (
-            <Pressable onPress={() => update({ categories: allSelected ? [] : categories.map((c) => c.slug) })} hitSlop={8}>
+            <Pressable onPress={() => update({ categories: allSelected ? [] : categories.map((c) => c.slug) })} hitSlop={8} accessibilityRole="button">
               <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textDecorationLine: "underline" }}>{allSelected ? s.none : s.all}</Text>
             </Pressable>
           )}
@@ -151,7 +151,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
 
         {offlineOnly && (
           <View style={[styles.note, { backgroundColor: t.paper, borderColor: t.edge }]}>
-            <Text style={{ fontSize: 18 }}>📴</Text>
+            <Text style={{ fontSize: 18 }} accessible={false} aria-hidden>📴</Text>
             <Text style={{ fontFamily: fonts.bodyBold, color: t.ink, flexShrink: 1 }}>{s.offlineOnly}</Text>
             <Pressable onPress={load} hitSlop={8} accessibilityRole="button">
               <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textDecorationLine: "underline" }}>{s.retry}</Text>
@@ -181,7 +181,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const seriesPart = (
         <>
         <View style={styles.sectionHead}>
-          <Text style={[styles.h2, { color: t.ink }]}>{s.mySeries}</Text>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={TEXT_SCALE.button} style={[styles.h2, { color: t.ink }]}>{s.mySeries}</Text>
           {!wide && (
             <Pressable onPress={() => goTo(1)} hitSlop={8} accessibilityRole="button">
               <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textDecorationLine: "underline" }}>{s.change}</Text>
@@ -229,27 +229,27 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
         <View style={styles.header}>
           <View style={styles.brand}>
             <View style={[styles.logo, { backgroundColor: t.sun, borderColor: t.edge }, hardShadow(t.drop, 3)]}>
-              <Text style={{ fontFamily: fonts.display, fontSize: 28, color: t.sunInk }}>?</Text>
+              <Text allowFontScaling={false} accessible={false} aria-hidden style={{ fontFamily: fonts.display, fontSize: 28, color: t.sunInk }}>?</Text>
             </View>
             <View style={{ flexShrink: 1 }}>
-              <Text style={[styles.title, { color: t.ink }]}>Imagier parlant</Text>
-              <Text style={{ fontFamily: fonts.body, color: t.muted }}>{s.tagline}</Text>
+              <Text accessibilityRole="header" maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.title, { color: t.ink }]}>Imagier parlant</Text>
+              <Text maxFontSizeMultiplier={TEXT_SCALE.button} style={{ fontFamily: fonts.body, color: t.muted }}>{s.tagline}</Text>
             </View>
           </View>
           <View style={styles.tools}>
             {/* Langue : passe à la suivante */}
             <HeadButton label={s.languageButton(currentLang?.name ?? settings.lang)} onPress={nextLanguage}>
-              <Text style={[styles.toolText, { color: t.ink }]}>{settings.lang.toUpperCase()}</Text>
+              <Text allowFontScaling={false} style={[styles.toolText, { color: t.ink }]}>{settings.lang.toUpperCase()}</Text>
             </HeadButton>
             {/* Thème : téléphone → clair → sombre */}
             <HeadButton label={s.theme(themeName)} onPress={nextTheme}>
-              <Text style={{ fontSize: 19 }}>{settings.theme === "light" ? "☀️" : settings.theme === "dark" ? "🌙" : "🌓"}</Text>
+              <Text allowFontScaling={false} style={{ fontSize: 19 }}>{settings.theme === "light" ? "☀️" : settings.theme === "dark" ? "🌙" : "🌓"}</Text>
             </HeadButton>
             {/* Compte : connexion ou création, derrière le portail parental */}
             <HeadButton label={acc.account ? s.accountSigned(acc.account.email) : s.account} onPress={onParent}>
-              <Text style={{ fontSize: 19 }}>{acc.activeProfile ? AVATARS[acc.activeProfile.avatar] ?? "👤" : "👤"}</Text>
+              <Text allowFontScaling={false} style={{ fontSize: 19 }}>{acc.activeProfile ? AVATARS[acc.activeProfile.avatar] ?? "👤" : "👤"}</Text>
               <View style={[styles.lockBadge, { backgroundColor: acc.account ? t.leaf : t.sun, borderColor: t.edge }]}>
-                <Text style={{ fontSize: 9 }}>{acc.account ? "✓" : "🔒"}</Text>
+                <Text allowFontScaling={false} style={{ fontSize: 9 }}>{acc.account ? "✓" : "🔒"}</Text>
               </View>
             </HeadButton>
           </View>
@@ -264,9 +264,9 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
                 accessibilityState={{ selected: active, disabled: !reachable }}
                 style={[styles.step, { borderColor: t.edge, backgroundColor: active ? t.ink : t.paper, opacity: reachable ? 1 : 0.5 }]}>
                 <View style={[styles.stepNum, { backgroundColor: active ? t.sun : t.sky, borderColor: t.edge }]}>
-                  <Text style={{ fontFamily: fonts.display, fontSize: 15, color: active ? t.sunInk : t.ink }}>{n}</Text>
+                  <Text allowFontScaling={false} style={{ fontFamily: fonts.display, fontSize: 15, color: active ? t.sunInk : t.ink }}>{n}</Text>
                 </View>
-                <Text style={[styles.label, { color: active ? t.paper : t.ink, flexShrink: 1 }]} numberOfLines={1}>
+                <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.label, { color: active ? t.paper : t.ink, flexShrink: 1 }]} numberOfLines={1}>
                   {n === 1 ? s.stepCats : s.mySeries}
                 </Text>
               </Pressable>
@@ -285,7 +285,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
       </ScrollView>
 
       <View style={[styles.startBar, { paddingBottom: insets.bottom + 14, backgroundColor: t.sky }]}>
-        {startError && <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textAlign: "center" }}>{startError}</Text>}
+        {startError && <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ fontFamily: fonts.bodyBold, color: t.coral, textAlign: "center" }}>{startError}</Text>}
         {step === 1 && !wide ? (
           <BigButton
             label={settings.categories.length ? `${s.nextStep} · ${s.catsChosen(settings.categories.length)} →` : s.pick}
@@ -346,6 +346,7 @@ function CategoryCard({ category: c, index: i, on, width, label, saved, savedLab
         onPress={onPress}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: on }}
+        aria-checked={on}
         accessibilityLabel={`${c.name}, ${label}${saved ? `, ${savedLabel}` : ""}`}
         style={({ pressed }) => [
           styles.cat,
@@ -354,11 +355,11 @@ function CategoryCard({ category: c, index: i, on, width, label, saved, savedLab
         ]}
       >
         <View style={[styles.check, { borderColor: t.edge, backgroundColor: on ? t.leaf : t.paper }]}>
-          {on && <Text style={{ color: "#fff", fontFamily: fonts.bodyBold, fontSize: 14 }}>✓</Text>}
+          {on && <Text allowFontScaling={false} style={{ color: "#fff", fontFamily: fonts.bodyBold, fontSize: 14 }}>✓</Text>}
         </View>
         <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={48} />
-        <Text style={[styles.catName, { color: t.ink }]} numberOfLines={2}>{c.name}</Text>
-        <Text style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{label}{saved ? "  📥" : ""}</Text>
+        <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.catName, { color: t.ink }]} numberOfLines={2}>{c.name}</Text>
+        <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{label}{saved ? "  📥" : ""}</Text>
       </Pressable>
     </Animated.View>
   )
