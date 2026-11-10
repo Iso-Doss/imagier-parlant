@@ -21,11 +21,11 @@ class PackApiTest extends TestCase
 
     public function test_it_lists_one_pack_per_published_category(): void
     {
-        $response = $this->getJson('/api/v1/packs?lang=en')->assertOk()->assertJsonCount(11, 'data');
+        $response = $this->getJson('/api/v1/packs?lang=en')->assertOk()->assertJsonCount($this->catalogCategories(), 'data');
 
         $fruits = collect($response->json('data'))->firstWhere('slug', 'fruits');
         $this->assertSame('Fruits', $fruits['name']);
-        $this->assertSame(14, $fruits['items_count']);
+        $this->assertSame($this->catalogItems('fruits'), $fruits['items_count']);
         $this->assertMatchesRegularExpression('/^[0-9a-f]{12}$/', $fruits['version']);
         $this->assertIsInt($fruits['size']);
     }
@@ -38,7 +38,7 @@ class PackApiTest extends TestCase
             ->assertJsonPath('category.names.fr', 'Fruits')
             ->assertJsonPath('languages.0.code', 'fr')
             ->assertJsonPath('languages.1.code', 'en')
-            ->assertJsonCount(14, 'items')
+            ->assertJsonCount($this->catalogItems('fruits'), 'items')
             ->assertJsonPath('items.0.texts.fr.name', 'une pomme')
             ->assertJsonPath('items.0.texts.fr.sentence', "C'est une pomme")
             ->assertJsonPath('items.0.texts.en.sentence', "It's an apple");
@@ -61,10 +61,10 @@ class PackApiTest extends TestCase
     {
         $category = Category::where('slug', 'fruits')->first();
         $category->items()->first()->update(['is_published' => false]);
-        $this->getJson('/api/v1/packs/fruits')->assertJsonCount(13, 'items');
+        $this->getJson('/api/v1/packs/fruits')->assertJsonCount($this->catalogItems('fruits') - 1, 'items');
 
         $category->update(['is_published' => false]);
         $this->getJson('/api/v1/packs/fruits')->assertNotFound();
-        $this->getJson('/api/v1/packs')->assertJsonCount(10, 'data');
+        $this->getJson('/api/v1/packs')->assertJsonCount($this->catalogCategories() - 1, 'data');
     }
 }

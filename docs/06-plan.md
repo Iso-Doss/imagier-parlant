@@ -162,19 +162,21 @@ Sur le serveur (meilleure qualité, la même sur tous les téléphones) :
 
 ### B. Une base plus fournie
 
-Aujourd'hui : 11 catégories, 157 objets, en émojis, français et anglais
-(`api/database/seeders/data/catalog.php`, recopié dans le prototype).
+Au départ : 11 catégories, 146 objets. Maintenant : **29 catégories, 479 objets**, en émojis, français et anglais,
+dans `api/database/seeders/data/catalog.json` (lu par le seeder, recopié dans le prototype par `npm run sync:prototype`).
 
-- [ ] Passer à ~25 catégories et ~500 objets. Nouvelles catégories possibles : la ferme,
+- [x] Passer à ~25 catégories et ~500 objets (29 et 479). Nouvelles catégories possibles : la ferme,
   la mer, les insectes, les oiseaux, le corps, les métiers, les sports, la musique, la météo,
   les formes et couleurs, les émotions, la ville, les outils, les fêtes
-- [ ] Compléter les catégories existantes (15 à 25 objets chacune)
-- [ ] Pour chaque objet : nom français et anglais avec l'article, phrase quand le modèle
+- [x] Compléter les catégories existantes (14 à 30 objets chacune)
+- [x] Pour chaque objet : nom français et anglais avec l'article, phrase quand le modèle
   ne convient pas (pluriels), variantes acceptées au micro (« vélo » / « bicyclette »)
-- [ ] Vérifications automatiques : pas de doublon, chaque émoji s'affiche sur iOS et Android,
-  chaque nom passe dans le comparateur de réponses (cas ajoutés à `shared/answer-cases.json`)
-- [ ] Le seeder ajoute et met à jour sans rien supprimer (déjà le cas) : les progrès des enfants sont gardés
-- [ ] Prototype web : même catalogue, généré depuis le fichier de l'API (comme le comparateur)
+- [x] Vérifications automatiques (`mobile/tests/catalog.test.ts`) : pas de doublon d'émoji ni de référence,
+  article français et a / an anglais corrects, phrase pour les pluriels, chaque nom et variante reconnus
+  au micro, et deux objets d'une même catégorie jamais confondus (5 paires connues du comparateur notées)
+- [ ] Vérifier sur iOS et Android que chaque émoji s'affiche (aucun n'est plus récent qu'Unicode 14)
+- [x] Le seeder ajoute et met à jour sans rien supprimer (déjà le cas) : les progrès des enfants sont gardés
+- [x] Prototype web : même catalogue, généré depuis le fichier de l'API (comme le comparateur)
 - [ ] Ensuite, les vraies images (illustrations) remplacent les émojis catégorie par catégorie
   (style à décider, voir « Décisions à prendre »)
 

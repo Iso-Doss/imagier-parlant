@@ -33,9 +33,9 @@ class PublicApiTest extends TestCase
         $this->getJson('/api/v1/categories?lang=en')
             ->assertOk()
             ->assertHeader('Content-Language', 'en')
-            ->assertJsonCount(11, 'data')
+            ->assertJsonCount($this->catalogCategories(), 'data')
             ->assertJsonPath('data.1.name', 'Vegetables')
-            ->assertJsonPath('data.0.items_count', 14);
+            ->assertJsonPath('data.0.items_count', $this->catalogItems('fruits'));
 
         $this->getJson('/api/v1/categories', ['Accept-Language' => 'fr-FR,fr;q=0.9'])
             ->assertJsonPath('data.1.name', 'Légumes');
@@ -65,8 +65,8 @@ class PublicApiTest extends TestCase
 
         $this->getJson('/api/v1/categories/fruits')->assertNotFound();
         $this->getJson('/api/v1/categories')
-            ->assertJsonCount(10, 'data')
-            ->assertJsonPath('data.1.items_count', 15);
+            ->assertJsonCount($this->catalogCategories() - 1, 'data')
+            ->assertJsonPath('data.1.items_count', $this->catalogItems('animaux') - 3);
         $this->getJson('/api/v1/series?categories=fruits&count=5')->assertJsonPath('count', 0);
     }
 
@@ -75,12 +75,12 @@ class PublicApiTest extends TestCase
         $response = $this->getJson('/api/v1/series?lang=fr&categories=bain&count=100')
             ->assertOk()
             ->assertJsonPath('count', 100)
-            ->assertJsonPath('distinct_items', 9)
+            ->assertJsonPath('distinct_items', $this->catalogItems('bain'))
             ->assertJsonPath('language.question', "Qu'est-ce que c'est ?");
 
         $ids = array_column($response->json('items'), 'id');
         $this->assertCount(100, $ids);
-        $this->assertCount(9, array_unique($ids));
+        $this->assertCount($this->catalogItems('bain'), array_unique($ids));
         for ($i = 1; $i < count($ids); $i++) {
             $this->assertNotSame($ids[$i - 1], $ids[$i], "Item repeated at position $i");
         }
@@ -96,7 +96,7 @@ class PublicApiTest extends TestCase
 
     public function test_series_can_include_a_second_language(): void
     {
-        $this->getJson('/api/v1/series?lang=fr&categories=fruits&count=14&translation=en')
+        $this->getJson('/api/v1/series?lang=fr&categories=fruits&count=100&translation=en')
             ->assertOk()
             ->assertJsonPath('items', fn ($items) => collect($items)->contains(fn ($i) => $i['name'] === 'une pomme' && $i['translation'] === 'an apple'));
 

@@ -43,7 +43,8 @@ Sans Docker, on peut revenir à SQLite et au dossier local dans `api/.env` :
 ```bash
 cd api
 cp .env.example .env && php artisan key:generate   # première fois seulement
-php artisan migrate:fresh --seed     # 11 catégories, 146 objets, FR + EN, compte admin
+php artisan migrate:fresh --seed     # 29 catégories, 479 objets, FR + EN, compte admin
+php artisan db:seed --class=CatalogSeeder   # recharge le catalogue (ajoute et met à jour, ne supprime rien)
 php artisan serve                    # http://localhost:8000
 php artisan horizon                  # traitement des files (dans un autre terminal)
 ```
