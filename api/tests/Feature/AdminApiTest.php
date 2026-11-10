@@ -70,7 +70,7 @@ class AdminApiTest extends TestCase
             'translations' => ['fr' => ['name' => 'Couleurs'], 'en' => ['name' => 'Colours']],
         ])->assertCreated()
             ->assertJsonPath('data.translations.en.name', 'Colours')
-            ->assertJsonPath('data.sort_order', 11);
+            ->assertJsonPath('data.sort_order', $this->catalogCategories());
 
         $this->postJson('/api/v1/admin/categories', [
             'slug' => 'couleurs', 'translations' => ['xx' => ['name' => 'X'], 'fr' => []],
@@ -84,7 +84,7 @@ class AdminApiTest extends TestCase
 
         $id = $this->postJson('/api/v1/admin/items', [
             'category_id' => $fruits->id, 'emoji' => '🫐',
-            'translations' => ['fr' => ['name' => 'des myrtilles', 'sentence' => 'Ce sont des myrtilles'], 'en' => ['name' => 'blueberries']],
+            'translations' => ['fr' => ['name' => 'des groseilles', 'sentence' => 'Ce sont des groseilles'], 'en' => ['name' => 'blueberries']],
         ])->assertCreated()->json('data.id');
 
         $this->patchJson("/api/v1/admin/items/$id", ['translations' => ['en' => null], 'is_published' => false])
@@ -92,9 +92,9 @@ class AdminApiTest extends TestCase
             ->assertJsonPath('data.is_published', false)
             ->assertJsonMissingPath('data.translations.en');
 
-        $this->getJson('/api/v1/admin/items?search=myrtilles')->assertJsonPath('meta.total', 1);
+        $this->getJson('/api/v1/admin/items?search=groseilles')->assertJsonPath('meta.total', 1);
         $this->getJson('/api/v1/admin/items?missing=translation')->assertJsonPath('meta.total', 1);
-        $this->getJson("/api/v1/admin/items?category_id={$fruits->id}&per_page=100")->assertJsonPath('meta.total', 15);
+        $this->getJson("/api/v1/admin/items?category_id={$fruits->id}&per_page=100")->assertJsonPath('meta.total', $this->catalogItems('fruits') + 1);
     }
 
     public function test_admin_uploads_images_and_audio_and_files_are_removed_on_delete(): void
@@ -149,7 +149,7 @@ class AdminApiTest extends TestCase
 
         $this->deleteJson("/api/v1/admin/categories/{$category->id}")->assertNoContent();
         $this->assertDatabaseMissing('items', ['category_id' => $category->id]);
-        $this->assertSame(132, Item::count());
+        $this->assertSame($this->catalogItems() - $this->catalogItems('fruits'), Item::count());
     }
 
     public function test_categories_can_be_reordered(): void
@@ -158,7 +158,7 @@ class AdminApiTest extends TestCase
         $ids = Category::orderBy('sort_order')->pluck('id')->reverse()->values()->all();
 
         $this->postJson('/api/v1/admin/categories/reorder', ['ids' => $ids])
-            ->assertOk()->assertJsonPath('data.0.slug', 'nature');
+            ->assertOk()->assertJsonPath('data.0.slug', collect($this->catalog()['categories'])->last()['slug']);
     }
 
     public function test_languages_can_be_added_but_not_deleted_while_in_use(): void
@@ -169,7 +169,7 @@ class AdminApiTest extends TestCase
             'code' => 'wo', 'name' => 'Wolof', 'tts_locale' => 'wo-SN', 'question' => 'Lii lan la?', 'answer_template' => ':name la',
         ])->assertCreated()->json('data.id');
 
-        $this->getJson('/api/v1/admin/stats')->assertJsonPath('languages.2.missing_translations', 146);
+        $this->getJson('/api/v1/admin/stats')->assertJsonPath('languages.2.missing_translations', $this->catalogItems());
 
         $fr = $this->getJson('/api/v1/admin/languages')->json('data.0.id');
         $this->deleteJson("/api/v1/admin/languages/$fr")->assertStatus(409);

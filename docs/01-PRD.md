@@ -41,7 +41,7 @@ répond à voix haute, et l'application lui dit s'il a trouvé.
 - API Laravel : langues, catégories, objets, séries, connexion des administrateurs.
 - Administration React + shadcn : tableau de bord, catégories, objets, langues, enregistrement de la voix.
 - Application Expo : accueil, partie, pause, écran de fin.
-- Catalogue de départ : 11 catégories, 146 objets, français et anglais.
+- Catalogue de départ : 29 catégories, 479 objets, français et anglais (`api/database/seeders/data/catalog.json`).
 
 ## 4. Fonctionnalités
 

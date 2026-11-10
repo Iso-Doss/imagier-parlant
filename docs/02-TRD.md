@@ -171,7 +171,7 @@ ajouter le cas, modifier le TypeScript et le PHP, puis `npm run sync:prototype`.
 
 | Environnement | Rôle | Données |
 |---|---|---|
-| Local | Développement | Catalogue de départ (146 objets), SQLite ou MySQL Herd |
+| Local | Développement | Catalogue de départ (479 objets), SQLite ou MySQL Herd |
 | Recette (staging) | Tests avant mise en production, builds de test mobiles | Copie du catalogue, comptes fictifs |
 | Production | Utilisateurs réels | Données réelles, accès restreint |
 
