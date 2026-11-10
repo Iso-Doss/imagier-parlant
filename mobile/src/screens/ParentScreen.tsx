@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native"
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type TextInputProps } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { AGE_BANDS, AVATARS, ApiError, DELAY_FOR_AGE, useAccount, type Profile, type Progress } from "../account"
 import { BigButton, Chip, Picture, SmallButton } from "../components/ui"
@@ -23,17 +23,35 @@ export function ParentScreen({ lang, settings, update, onClose }: {
   const p = parentStrings(lang)
   const insets = useSafeAreaInsets()
   const { account } = useAccount()
+  // Grand écran : réglages de l'appareil à gauche, compte et profils à droite
+  const { width } = useWindowDimensions()
+  const wide = width >= 900
+  const device = (
+    <>
+      <MicCard p={p} settings={settings} update={update} />
+      <OfflineCard p={p} lang={lang} />
+    </>
+  )
+  const accountPart = account ? <Signed p={p} lang={lang} /> : <AuthFlow p={p} lang={lang} />
 
   return (
     <View style={{ flex: 1, backgroundColor: t.sky }}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, wide && { maxWidth: 1160 }, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled">
         <View style={styles.bar}>
           <SmallButton icon="←" label={p.back} onPress={onClose} />
           <Text style={[styles.title, { color: t.ink }]}>{p.parentArea}</Text>
         </View>
-        <MicCard p={p} settings={settings} update={update} />
-        <OfflineCard p={p} lang={lang} />
-        {account ? <Signed p={p} lang={lang} /> : <AuthFlow p={p} lang={lang} />}
+        {wide ? (
+          <View style={styles.columns}>
+            <View style={styles.column}>{accountPart}</View>
+            <View style={styles.column}>{device}</View>
+          </View>
+        ) : (
+          <>
+            {device}
+            {accountPart}
+          </>
+        )}
         <Text style={[styles.note, { color: t.muted }]}>🔒 {p.privacy}</Text>
       </ScrollView>
     </View>
@@ -477,6 +495,8 @@ function ErrorText({ text }: { text: string }) {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 16, gap: 16, maxWidth: 620, width: "100%", alignSelf: "center" },
+  columns: { flexDirection: "row", gap: 20, alignItems: "flex-start" },
+  column: { flex: 1, gap: 16 },
   bar: { flexDirection: "row", alignItems: "center", gap: 12 },
   title: { fontFamily: fonts.display, fontSize: 28 },
   card: { borderWidth: 3, borderRadius: 22, padding: 18, gap: 14 },

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Animated, { useReducedMotion, useSharedValue, withSequence, withSpring, withTiming, useAnimatedStyle } from "react-native-reanimated"
-import { ActivityIndicator, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View, useWindowDimensions } from "react-native"
+import { ActivityIndicator, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View, type ViewInstance, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { AVATARS, useAccount } from "../account"
 import { NetworkError, fetchCategories, fetchLanguages, type Category, type Language } from "../api"
 import { categoriesFromPacks, languagesFromPacks } from "../lib/packs"
 import { useOffline } from "../offline"
 import { BigButton, Chip, Picture, Toggle } from "../components/ui"
+import type { Rect } from "../components/LaunchOverlay"
 import { strings } from "../i18n"
 import { micPermission } from "../speech"
 import type { AnswerMode, CountStyle, Settings } from "../settings"
@@ -15,7 +16,8 @@ import { fonts, hardShadow, tintFor, useTheme } from "../theme"
 type Props = {
   settings: Settings
   update: (p: Partial<Settings>) => void
-  onStart: () => void
+  /** `from` : position du bouton, pour la transition vers la partie */
+  onStart: (from?: Rect, emojis?: string[]) => void
   starting: boolean
   startError: string | null
   onParent: () => void
@@ -26,7 +28,9 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const t = useTheme()
   const s = strings(settings.lang)
   const insets = useSafeAreaInsets()
-  const { width } = useWindowDimensions()
+  const { width, height } = useWindowDimensions()
+  // Tablette en paysage : catégories à gauche, série à droite, sans étapes
+  const wide = width >= 900 && width > height
   const [languages, setLanguages] = useState<Language[]>([])
   const [categories, setCategories] = useState<Category[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +44,13 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const fade = useSharedValue(1)
   const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value, transform: [{ translateY: (1 - fade.value) * 12 }] }))
   const scroll = useRef<ScrollViewInstance>(null)
+  const startRef = useRef<ViewInstance>(null)
+  const launch = () => {
+    const emojis = (categories ?? []).filter((c) => settings.categories.includes(c.slug)).map((c) => c.emoji ?? "🖼️")
+    const node = startRef.current
+    if (!node) return onStart(undefined, emojis)
+    node.measureInWindow((x, y, w, h) => onStart(w > 0 ? { x, y, width: w, height: h } : undefined, emojis))
+  }
   const goTo = (next: 1 | 2) => {
     if (next === step) return
     setStep(next)
@@ -88,9 +99,9 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
 
   useEffect(() => { if (offline.ready) load() }, [load, offline.ready])
 
-  const columns = width > 700 ? 4 : width > 480 ? 3 : 2
   const gap = 12
-  const contentWidth = Math.min(width, 760) - 32
+  const contentWidth = wide ? (Math.min(width, 1200) - 32 - 24) * (1.45 / 2.45) : Math.min(width, 760) - 32
+  const columns = contentWidth > 640 ? 4 : contentWidth > 440 ? 3 : 2
   const cardWidth = (contentWidth - gap * (columns - 1)) / columns
   const selected = new Set(settings.categories)
   const allSelected = !!categories && categories.length > 0 && categories.every((c) => selected.has(c.slug))
@@ -98,46 +109,8 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const toggleCat = (slug: string) =>
     update({ categories: selected.has(slug) ? settings.categories.filter((c) => c !== slug) : [...settings.categories, slug] })
 
-  return (
-    <View style={{ flex: 1, backgroundColor: t.sky }}>
-      <ScrollView ref={scroll} contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 120 }]}>
-        <View style={styles.header}>
-          <View style={styles.brand}>
-            <View style={[styles.logo, { backgroundColor: t.sun, borderColor: t.edge }, hardShadow(t.drop, 3)]}>
-              <Text style={{ fontFamily: fonts.display, fontSize: 28, color: t.sunInk }}>?</Text>
-            </View>
-            <View style={{ flexShrink: 1 }}>
-              <Text style={[styles.title, { color: t.ink }]}>Imagier parlant</Text>
-              <Text style={{ fontFamily: fonts.body, color: t.muted }}>{s.tagline}</Text>
-            </View>
-          </View>
-          <Pressable onPress={onParent} accessibilityRole="button" accessibilityLabel="Espace parent" hitSlop={8}
-            style={[styles.lock, { borderColor: t.edge, backgroundColor: t.paper }]}>
-            <Text style={{ fontSize: 20 }}>🔒</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.steps} accessibilityRole="tablist">
-          {([1, 2] as const).map((n) => {
-            const active = step === n
-            const reachable = n === 1 || settings.categories.length > 0
-            return (
-              <Pressable key={n} onPress={() => reachable && goTo(n)} disabled={!reachable} accessibilityRole="tab"
-                accessibilityState={{ selected: active, disabled: !reachable }}
-                style={[styles.step, { borderColor: t.edge, backgroundColor: active ? t.ink : t.paper, opacity: reachable ? 1 : 0.5 }]}>
-                <View style={[styles.stepNum, { backgroundColor: active ? t.sun : t.sky, borderColor: t.edge }]}>
-                  <Text style={{ fontFamily: fonts.display, fontSize: 15, color: active ? t.sunInk : t.ink }}>{n}</Text>
-                </View>
-                <Text style={[styles.label, { color: active ? t.paper : t.ink, flexShrink: 1 }]} numberOfLines={1}>
-                  {n === 1 ? s.stepCats : s.mySeries}
-                </Text>
-              </Pressable>
-            )
-          })}
-        </View>
-
-        <Animated.View style={[{ gap: 18 }, fadeStyle]}>
-        {step === 1 ? (<>
+  const catsPart = (
+        <>
 
         {acc.profiles.length > 0 && (
           <View style={{ gap: 8 }}>
@@ -202,14 +175,19 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           </View>
         )}
 
-        </>) : (<>
+        </>
+  )
+  const seriesPart = (
+        <>
         <View style={styles.sectionHead}>
           <Text style={[styles.h2, { color: t.ink }]}>{s.mySeries}</Text>
-          <Pressable onPress={() => goTo(1)} hitSlop={8} accessibilityRole="button">
-            <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textDecorationLine: "underline" }}>{s.change}</Text>
-          </Pressable>
+          {!wide && (
+            <Pressable onPress={() => goTo(1)} hitSlop={8} accessibilityRole="button">
+              <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textDecorationLine: "underline" }}>{s.change}</Text>
+            </Pressable>
+          )}
         </View>
-        {categories && (
+        {categories && !wide && (
           <View style={styles.chips}>
             {categories.filter((c) => selected.has(c.slug)).map((c) => (
               <View key={c.slug} style={[styles.who, { borderColor: t.edge, backgroundColor: t.paper }]}>
@@ -241,13 +219,60 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           {languages.length > 1 && <Toggle label={s.showTranslation} value={settings.showTranslation} onChange={(v) => update({ showTranslation: v })} />}
           <Toggle label={s.autoNext} value={settings.autoNext} onChange={(v) => update({ autoNext: v })} />
         </View>
-        </>)}
-        </Animated.View>
+        </>
+  )
+
+  return (
+    <View style={{ flex: 1, backgroundColor: t.sky }}>
+      <ScrollView ref={scroll} contentContainerStyle={[styles.content, wide && { maxWidth: 1200 }, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 120 }]}>
+        <View style={styles.header}>
+          <View style={styles.brand}>
+            <View style={[styles.logo, { backgroundColor: t.sun, borderColor: t.edge }, hardShadow(t.drop, 3)]}>
+              <Text style={{ fontFamily: fonts.display, fontSize: 28, color: t.sunInk }}>?</Text>
+            </View>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={[styles.title, { color: t.ink }]}>Imagier parlant</Text>
+              <Text style={{ fontFamily: fonts.body, color: t.muted }}>{s.tagline}</Text>
+            </View>
+          </View>
+          <Pressable onPress={onParent} accessibilityRole="button" accessibilityLabel="Espace parent" hitSlop={8}
+            style={[styles.lock, { borderColor: t.edge, backgroundColor: t.paper }]}>
+            <Text style={{ fontSize: 20 }}>🔒</Text>
+          </Pressable>
+        </View>
+
+        {!wide && <View style={styles.steps} accessibilityRole="tablist">
+          {([1, 2] as const).map((n) => {
+            const active = step === n
+            const reachable = n === 1 || settings.categories.length > 0
+            return (
+              <Pressable key={n} onPress={() => reachable && goTo(n)} disabled={!reachable} accessibilityRole="tab"
+                accessibilityState={{ selected: active, disabled: !reachable }}
+                style={[styles.step, { borderColor: t.edge, backgroundColor: active ? t.ink : t.paper, opacity: reachable ? 1 : 0.5 }]}>
+                <View style={[styles.stepNum, { backgroundColor: active ? t.sun : t.sky, borderColor: t.edge }]}>
+                  <Text style={{ fontFamily: fonts.display, fontSize: 15, color: active ? t.sunInk : t.ink }}>{n}</Text>
+                </View>
+                <Text style={[styles.label, { color: active ? t.paper : t.ink, flexShrink: 1 }]} numberOfLines={1}>
+                  {n === 1 ? s.stepCats : s.mySeries}
+                </Text>
+              </Pressable>
+            )
+          })}
+        </View>}
+
+        {wide ? (
+          <View style={styles.columns}>
+            <View style={{ flex: 1.45, gap: 18 }}>{catsPart}</View>
+            <View style={{ flex: 1, gap: 18 }}>{seriesPart}</View>
+          </View>
+        ) : (
+          <Animated.View style={[{ gap: 18 }, fadeStyle]}>{step === 1 ? catsPart : seriesPart}</Animated.View>
+        )}
       </ScrollView>
 
       <View style={[styles.startBar, { paddingBottom: insets.bottom + 14, backgroundColor: t.sky }]}>
         {startError && <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textAlign: "center" }}>{startError}</Text>}
-        {step === 1 ? (
+        {step === 1 && !wide ? (
           <BigButton
             label={settings.categories.length ? `${s.nextStep} · ${s.catsChosen(settings.categories.length)} →` : s.pick}
             onPress={() => goTo(2)}
@@ -255,12 +280,14 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
             style={{ width: "100%", maxWidth: 520 }}
           />
         ) : (
-          <BigButton
-            label={starting ? s.loading : s.start(settings.count)}
-            onPress={onStart}
-            disabled={!settings.categories.length || starting || !!error}
-            style={{ width: "100%", maxWidth: 520 }}
-          />
+          <View ref={startRef} collapsable={false} style={{ width: "100%", maxWidth: 520 }}>
+            <BigButton
+              label={starting ? s.loading : s.start(settings.count)}
+              onPress={launch}
+              disabled={!settings.categories.length || starting || !!error}
+              style={{ width: "100%" }}
+            />
+          </View>
         )}
       </View>
     </View>
@@ -332,6 +359,7 @@ const styles = StyleSheet.create({
   logo: { width: 48, height: 48, borderRadius: 14, borderWidth: 3, alignItems: "center", justifyContent: "center", transform: [{ rotate: "-6deg" }] },
   title: { fontFamily: fonts.display, fontSize: 28, lineHeight: 32 },
   h2: { fontFamily: fonts.display, fontSize: 22 },
+  columns: { flexDirection: "row", gap: 24, alignItems: "flex-start" },
   steps: { flexDirection: "row", gap: 8 },
   step: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, paddingVertical: 8, borderRadius: 999, borderWidth: 2.5 },
   stepNum: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: "center", justifyContent: "center" },
