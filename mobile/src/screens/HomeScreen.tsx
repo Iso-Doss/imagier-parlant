@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import Animated, { useReducedMotion, useSharedValue, withTiming, useAnimatedStyle } from "react-native-reanimated"
+import Animated, { useReducedMotion, useSharedValue, withSequence, withSpring, withTiming, useAnimatedStyle } from "react-native-reanimated"
 import { ActivityIndicator, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { AVATARS, useAccount } from "../account"
@@ -171,27 +171,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           <View style={[styles.grid, { gap }]}>
             {categories.map((c, i) => {
               const on = selected.has(c.slug)
-              return (
-                <Pressable
-                  key={c.slug}
-                  onPress={() => toggleCat(c.slug)}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: on }}
-                  accessibilityLabel={`${c.name}, ${s.objects(c.items_count)}`}
-                  style={({ pressed }) => [
-                    styles.cat,
-                    { width: cardWidth, backgroundColor: tintFor(t, c.color, i), borderColor: t.edge },
-                    pressed ? { transform: [{ translateX: 2 }, { translateY: 2 }], ...hardShadow(t.drop, 2) } : hardShadow(t.drop, 4),
-                  ]}
-                >
-                  <View style={[styles.check, { borderColor: t.edge, backgroundColor: on ? t.leaf : t.paper }]}>
-                    {on && <Text style={{ color: "#fff", fontFamily: fonts.bodyBold, fontSize: 14 }}>✓</Text>}
-                  </View>
-                  <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={48} />
-                  <Text style={[styles.catName, { color: t.ink }]} numberOfLines={2}>{c.name}</Text>
-                  <Text style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{s.objects(c.items_count)}</Text>
-                </Pressable>
-              )
+              return <CategoryCard key={c.slug} category={c} index={i} on={on} width={cardWidth} label={s.objects(c.items_count)} onPress={() => toggleCat(c.slug)} />
             })}
           </View>
         )}
@@ -258,6 +238,48 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
         )}
       </View>
     </View>
+  )
+}
+
+/** Carte de catégorie : rebondit (1 → 1,08 → 1) quand on la choisit ou l'enlève. */
+function CategoryCard({ category: c, index: i, on, width, label, onPress }: {
+  category: Category
+  index: number
+  on: boolean
+  width: number
+  label: string
+  onPress: () => void
+}) {
+  const t = useTheme()
+  const reduced = useReducedMotion()
+  const scale = useSharedValue(1)
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    if (!reduced) scale.value = withSequence(withTiming(1.08, { duration: 110 }), withSpring(1, { stiffness: 300, damping: 12 }))
+  }, [on, reduced, scale])
+  const bounce = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+  return (
+    <Animated.View style={bounce}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: on }}
+        accessibilityLabel={`${c.name}, ${label}`}
+        style={({ pressed }) => [
+          styles.cat,
+          { width, backgroundColor: tintFor(t, c.color, i), borderColor: t.edge },
+          pressed ? { transform: [{ translateX: 2 }, { translateY: 2 }], ...hardShadow(t.drop, 2) } : hardShadow(t.drop, 4),
+        ]}
+      >
+        <View style={[styles.check, { borderColor: t.edge, backgroundColor: on ? t.leaf : t.paper }]}>
+          {on && <Text style={{ color: "#fff", fontFamily: fonts.bodyBold, fontSize: 14 }}>✓</Text>}
+        </View>
+        <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={48} />
+        <Text style={[styles.catName, { color: t.ink }]} numberOfLines={2}>{c.name}</Text>
+        <Text style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{label}</Text>
+      </Pressable>
+    </Animated.View>
   )
 }
 

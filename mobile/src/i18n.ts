@@ -48,6 +48,15 @@ const fr = {
   whoPlays: "Qui joue ?",
   nextStep: "Suivant",
   stepCats: "Catégories",
+  skip: "Passer",
+  welcomeQuestion: "Qu'est-ce que c'est ?",
+  welcomeAnswer: "C'est une pomme !",
+  welcomeMic: "Réponds à voix haute !",
+  welcomeHint1: "Une image apparaît, et l'appli te pose la question.",
+  welcomeHint2: "Tu as le temps de réfléchir, puis l'appli dit le nom.",
+  welcomeHint3: "Dis le nom de l'image : l'appli te dit si c'est juste.",
+  playNow: "Jouer tout de suite",
+  createAccount: "Créer un compte (adulte)",
   catsChosen: (n: number) => `${n} catégorie${n > 1 ? "s" : ""}`,
 }
 const en: typeof fr = {
@@ -99,6 +108,15 @@ const en: typeof fr = {
   whoPlays: "Who is playing?",
   nextStep: "Next",
   stepCats: "Categories",
+  skip: "Skip",
+  welcomeQuestion: "What is this?",
+  welcomeAnswer: "It's an apple!",
+  welcomeMic: "Say it out loud!",
+  welcomeHint1: "A picture appears, and the app asks the question.",
+  welcomeHint2: "Take time to think, then the app says the name.",
+  welcomeHint3: "Say the name of the picture: the app tells you if it's right.",
+  playNow: "Play right now",
+  createAccount: "Create an account (grown-up)",
   catsChosen: (n) => `${n} categor${n > 1 ? "ies" : "y"}`,
 }
 export type Strings = typeof fr

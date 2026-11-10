@@ -5,6 +5,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context"
 import { useFonts, Baloo2_700Bold, Baloo2_800ExtraBold } from "@expo-google-fonts/baloo-2"
 import { Nunito_600SemiBold, Nunito_800ExtraBold } from "@expo-google-fonts/nunito"
 import * as Crypto from "expo-crypto"
+import AsyncStorage from "@react-native-async-storage/async-storage"
 import { AccountProvider, useAccount } from "./src/account"
 import { fetchSeries, type Series } from "./src/api"
 import { ParentGate } from "./src/components/ParentGate"
@@ -14,10 +15,12 @@ import { initAudio } from "./src/audio"
 import { DoneScreen } from "./src/screens/DoneScreen"
 import { HomeScreen } from "./src/screens/HomeScreen"
 import { PlayScreen } from "./src/screens/PlayScreen"
+import { WelcomeScreen } from "./src/screens/WelcomeScreen"
 import { useSettings } from "./src/settings"
 import { useTheme } from "./src/theme"
 
 type Screen = "home" | "play" | "done" | "parent"
+const WELCOME_KEY = "imagier-welcome-v1"
 
 export default function App() {
   return (
@@ -38,6 +41,17 @@ function Main() {
   const { settings, update, ready } = useSettings()
   const theme = useTheme()
   const [screen, setScreen] = useState<Screen>("home")
+  // Bienvenue au premier lancement seulement (null : pas encore lu)
+  const [welcome, setWelcome] = useState<boolean | null>(null)
+  useEffect(() => {
+    AsyncStorage.getItem(WELCOME_KEY).then((v) => setWelcome(v !== "done")).catch(() => setWelcome(false))
+    initAudio().catch(() => {})
+  }, [])
+  const endWelcome = (next: "play" | "account") => {
+    setWelcome(false)
+    AsyncStorage.setItem(WELCOME_KEY, "done").catch(() => {})
+    if (next === "account") setGate(true)
+  }
   const [series, setSeries] = useState<Series | null>(null)
   const [playKey, setPlayKey] = useState(0)
   const [starting, setStarting] = useState(false)
@@ -95,14 +109,15 @@ function Main() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acc.activeProfile?.id, profileDelay])
 
-  if (!fontsLoaded || !ready || !acc.ready) {
+  if (!fontsLoaded || !ready || !acc.ready || welcome === null) {
     return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: theme.sky }}><ActivityIndicator color={theme.ink} /></View>
   }
 
   return (
     <>
       <StatusBar style="auto" />
-      {screen === "home" && <HomeScreen settings={settings} update={update} onStart={start} starting={starting} startError={startError} onParent={() => setGate(true)} />}
+      {welcome && <WelcomeScreen lang={settings.lang} onDone={endWelcome} />}
+      {!welcome && screen === "home" && <HomeScreen settings={settings} update={update} onStart={start} starting={starting} startError={startError} onParent={() => setGate(true)} />}
       {screen === "play" && series && (
         <PlayScreen key={playKey} series={series} settings={settings} onQuit={(r) => finish(r, false)} onDone={(r) => finish(r, true)} />
       )}
