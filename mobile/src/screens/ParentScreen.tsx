@@ -6,6 +6,9 @@ import { BigButton, Chip, Picture, SmallButton } from "../components/ui"
 import { parentStrings, type ParentStrings } from "../i18n-parent"
 import type { Tolerance } from "../lib/answerMatcher"
 import type { Settings } from "../settings"
+import { fetchPacks } from "../api"
+import { formatSize, packState, type PackSummary } from "../lib/packs"
+import { downloadPack, removePack, useOffline } from "../offline"
 import { micPermission, onDeviceSupported, requestMicPermission, type MicPermission } from "../speech"
 import { fonts, hardShadow, useTheme } from "../theme"
 
@@ -29,6 +32,7 @@ export function ParentScreen({ lang, settings, update, onClose }: {
           <Text style={[styles.title, { color: t.ink }]}>{p.parentArea}</Text>
         </View>
         <MicCard p={p} settings={settings} update={update} />
+        <OfflineCard p={p} lang={lang} />
         {account ? <Signed p={p} lang={lang} /> : <AuthFlow p={p} lang={lang} />}
         <Text style={[styles.note, { color: t.muted }]}>🔒 {p.privacy}</Text>
       </ScrollView>
@@ -79,6 +83,90 @@ function MicCard({ p, settings, update }: { p: ParentStrings; settings: Settings
             ))}
           </View>
           <Text style={[styles.small, { color: t.muted }]}>{p.toleranceHelp}</Text>
+        </View>
+      )}
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------- Hors connexion
+
+/** Catégories à télécharger pour jouer sans réseau, et place utilisée. */
+function OfflineCard({ p, lang }: { p: ParentStrings; lang: string }) {
+  const t = useTheme()
+  const off = useOffline()
+  const [remote, setRemote] = useState<PackSummary[] | null>(null)
+  const [noNetwork, setNoNetwork] = useState(false)
+  useEffect(() => {
+    fetchPacks(lang).then((r) => { setRemote(r); setNoNetwork(false) }).catch(() => { setRemote([]); setNoNetwork(true) })
+  }, [lang])
+
+  if (!off.supported) {
+    return (
+      <Card>
+        <Text style={[styles.h2, { color: t.ink }]}>📥 {p.offline}</Text>
+        <Text style={[styles.small, { color: t.muted }]}>{p.offlineUnsupported}</Text>
+      </Card>
+    )
+  }
+
+  // Les catégories du serveur, plus celles téléchargées qui n'y sont plus (hors réseau)
+  const rows: PackSummary[] = [...(remote ?? [])]
+  for (const pack of off.packs) {
+    if (rows.some((r) => r.slug === pack.slug)) continue
+    const entry = off.installed[pack.slug]
+    rows.push({ slug: pack.slug, name: pack.category.names[lang] ?? pack.slug, emoji: pack.category.emoji, version: pack.version, size: entry?.size ?? pack.size, items_count: pack.items_count })
+  }
+  const used = Object.values(off.installed).reduce((sum, e) => sum + e.size, 0)
+  const messages = { noSpace: p.noSpace, failed: p.downloadFailed }
+  const missing = (remote ?? []).filter((r) => packState(off.installed[r.slug], r) !== "ready" && off.progress[r.slug] === undefined)
+  const downloadAll = async () => { for (const r of missing) await downloadPack(r.slug, messages) }
+
+  return (
+    <Card>
+      <Text style={[styles.h2, { color: t.ink }]}>📥 {p.offline}</Text>
+      <Text style={[styles.text, { color: t.muted }]}>{p.offlineText}</Text>
+      {noNetwork && <Text style={[styles.small, { color: t.ink }]}>{p.offlineNoNetwork}</Text>}
+      {remote === null || !off.ready ? <ActivityIndicator color={t.ink} /> : (
+        <View style={{ gap: 10 }}>
+          {rows.map((r) => {
+            const entry = off.installed[r.slug]
+            const state = packState(entry, remote.find((x) => x.slug === r.slug))
+            const progress = off.progress[r.slug]
+            const error = off.errors[r.slug]
+            return (
+              <View key={r.slug} style={[styles.pack, { borderColor: t.edge }]}>
+                <Text style={{ fontSize: 28 }}>{r.emoji ?? "📦"}</Text>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[styles.label, { color: t.ink }]} numberOfLines={1}>{r.name}</Text>
+                  <Text style={[styles.small, { color: t.muted }]}>
+                    {p.packInfo(r.items_count, formatSize(entry && state === "ready" ? entry.size : r.size, lang))}
+                    {state === "ready" && progress === undefined ? `  ·  ✓ ${p.downloaded}` : ""}
+                  </Text>
+                  {progress !== undefined && (
+                    <View style={[styles.bar2, { borderColor: t.edge }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(progress * 100) }}>
+                      <View style={{ width: `${Math.round(progress * 100)}%`, height: "100%", backgroundColor: t.leaf }} />
+                    </View>
+                  )}
+                  {error && <Text style={[styles.small, { color: t.coral }]}>{error}</Text>}
+                </View>
+                {progress !== undefined ? (
+                  <Text style={[styles.label, { color: t.ink }]}>{Math.round(progress * 100)} %</Text>
+                ) : state === "absent" ? (
+                  <SmallButton label={p.download} onPress={() => downloadPack(r.slug, messages)} primary />
+                ) : (
+                  <View style={{ alignItems: "flex-end", gap: 6 }}>
+                    {state === "outdated" && !noNetwork && <SmallButton label={p.update} onPress={() => downloadPack(r.slug, messages)} primary />}
+                    <LinkText label={p.removePack} onPress={() => removePack(r.slug)} danger />
+                  </View>
+                )}
+              </View>
+            )
+          })}
+          <View style={styles.rowBetween}>
+            <Text style={[styles.small, { color: t.muted }]}>{p.spaceUsed(formatSize(used, lang))}</Text>
+            {missing.length > 1 && !noNetwork && <SmallButton label={p.downloadAll} onPress={downloadAll} />}
+          </View>
         </View>
       )}
     </Card>
@@ -414,6 +502,8 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: fonts.display, fontSize: 26 },
   thumbs: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   thumb: { width: 48, height: 48, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  pack: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 2.5, borderRadius: 16, padding: 10 },
+  bar2: { height: 8, borderRadius: 4, borderWidth: 1.5, overflow: "hidden", marginTop: 4 },
   avatars: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   avatarChoice: { width: 54, height: 54, borderRadius: 14, borderWidth: 3, alignItems: "center", justifyContent: "center" },
 })

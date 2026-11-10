@@ -3,7 +3,9 @@ import Animated, { useReducedMotion, useSharedValue, withSequence, withSpring, w
 import { ActivityIndicator, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { AVATARS, useAccount } from "../account"
-import { fetchCategories, fetchLanguages, type Category, type Language } from "../api"
+import { NetworkError, fetchCategories, fetchLanguages, type Category, type Language } from "../api"
+import { categoriesFromPacks, languagesFromPacks } from "../lib/packs"
+import { useOffline } from "../offline"
 import { BigButton, Chip, Picture, Toggle } from "../components/ui"
 import { strings } from "../i18n"
 import { micPermission } from "../speech"
@@ -28,6 +30,9 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const [languages, setLanguages] = useState<Language[]>([])
   const [categories, setCategories] = useState<Category[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Pas de réseau : on propose les catégories téléchargées
+  const [offlineOnly, setOfflineOnly] = useState(false)
+  const offline = useOffline()
   const [voiceNote, setVoiceNote] = useState<string | null>(null)
   // Deux étapes : 1. les catégories, 2. la série
   const [step, setStep] = useState<1 | 2>(1)
@@ -61,16 +66,27 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
       const [langs, cats] = await Promise.all([fetchLanguages(), fetchCategories(settings.lang)])
       setLanguages(langs)
       setCategories(cats)
+      setOfflineOnly(false)
       // Forget categories that no longer exist
       const known = new Set(cats.map((c) => c.slug))
       if (settings.categories.some((c) => !known.has(c))) update({ categories: settings.categories.filter((c) => known.has(c)) })
     } catch (e) {
-      setError((e as Error).message)
+      const { packs, files } = offline
+      if (e instanceof NetworkError && packs.length > 0) {
+        setLanguages(languagesFromPacks(packs))
+        setCategories(categoriesFromPacks(packs, settings.lang, files))
+        setOfflineOnly(true)
+        // Seules les catégories téléchargées restent choisies
+        const have = new Set(packs.map((p) => p.slug))
+        if (settings.categories.some((c) => !have.has(c))) update({ categories: settings.categories.filter((c) => have.has(c)) })
+      } else {
+        setError((e as Error).message)
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.lang])
+  }, [settings.lang, offline.ready, offline.packs])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { if (offline.ready) load() }, [load, offline.ready])
 
   const columns = width > 700 ? 4 : width > 480 ? 3 : 2
   const gap = 12
@@ -159,6 +175,16 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           )}
         </View>
 
+        {offlineOnly && (
+          <View style={[styles.note, { backgroundColor: t.paper, borderColor: t.edge }]}>
+            <Text style={{ fontSize: 18 }}>📴</Text>
+            <Text style={{ fontFamily: fonts.bodyBold, color: t.ink, flexShrink: 1 }}>{s.offlineOnly}</Text>
+            <Pressable onPress={load} hitSlop={8} accessibilityRole="button">
+              <Text style={{ fontFamily: fonts.bodyBold, color: t.coral, textDecorationLine: "underline" }}>{s.retry}</Text>
+            </Pressable>
+          </View>
+        )}
+
         {error ? (
           <View style={[styles.panel, { backgroundColor: t.paper, borderColor: t.edge }]}>
             <Text style={{ fontFamily: fonts.bodyBold, color: t.ink, fontSize: 16 }}>{s.offline}</Text>
@@ -171,7 +197,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           <View style={[styles.grid, { gap }]}>
             {categories.map((c, i) => {
               const on = selected.has(c.slug)
-              return <CategoryCard key={c.slug} category={c} index={i} on={on} width={cardWidth} label={s.objects(c.items_count)} onPress={() => toggleCat(c.slug)} />
+              return <CategoryCard key={c.slug} category={c} index={i} on={on} width={cardWidth} label={s.objects(c.items_count)} saved={!!offline.installed[c.slug]} savedLabel={s.savedOffline} onPress={() => toggleCat(c.slug)} />
             })}
           </View>
         )}
@@ -242,12 +268,15 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
 }
 
 /** Carte de catégorie : rebondit (1 → 1,08 → 1) quand on la choisit ou l'enlève. */
-function CategoryCard({ category: c, index: i, on, width, label, onPress }: {
+function CategoryCard({ category: c, index: i, on, width, label, saved, savedLabel, onPress }: {
   category: Category
   index: number
   on: boolean
   width: number
   label: string
+  /** Téléchargée : jouable sans réseau */
+  saved: boolean
+  savedLabel: string
   onPress: () => void
 }) {
   const t = useTheme()
@@ -265,7 +294,7 @@ function CategoryCard({ category: c, index: i, on, width, label, onPress }: {
         onPress={onPress}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: on }}
-        accessibilityLabel={`${c.name}, ${label}`}
+        accessibilityLabel={`${c.name}, ${label}${saved ? `, ${savedLabel}` : ""}`}
         style={({ pressed }) => [
           styles.cat,
           { width, backgroundColor: tintFor(t, c.color, i), borderColor: t.edge },
@@ -277,7 +306,7 @@ function CategoryCard({ category: c, index: i, on, width, label, onPress }: {
         </View>
         <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={48} />
         <Text style={[styles.catName, { color: t.ink }]} numberOfLines={2}>{c.name}</Text>
-        <Text style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{label}</Text>
+        <Text style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{label}{saved ? "  📥" : ""}</Text>
       </Pressable>
     </Animated.View>
   )
@@ -312,6 +341,7 @@ const styles = StyleSheet.create({
   cat: { borderWidth: 3, borderRadius: 18, padding: 12, gap: 2, minHeight: 130 },
   check: { position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 13, borderWidth: 2.5, alignItems: "center", justifyContent: "center" },
   catName: { fontFamily: fonts.displayBold, fontSize: 18, lineHeight: 21, marginTop: 4 },
+  note: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2.5, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
   panel: { borderWidth: 3, borderRadius: 20, padding: 16, gap: 16 },
   startBar: { position: "absolute", left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, alignItems: "center", gap: 8 },
 })

@@ -47,7 +47,7 @@ objet derrière un CDN ; l'API ne renvoie que leurs adresses.
 | Mobile | Expo SDK 58, React Native 0.88, Reanimated 4, expo-audio, expo-speech | Déjà en place, une base pour iOS et Android |
 | Reconnaissance vocale mobile | `expo-speech-recognition` (reconnaissance native iOS/Android, sur l'appareil si disponible) | Pas d'envoi de la voix au serveur |
 | Reconnaissance vocale web | Web Speech API | Prototype uniquement |
-| Stockage local mobile | SQLite (`expo-sqlite`) pour le catalogue hors connexion, SecureStore pour le jeton | Hors connexion, sécurité |
+| Stockage local mobile | Fichiers (`expo-file-system`) pour les packs hors connexion, AsyncStorage pour l'index, SecureStore pour le jeton | Hors connexion, sécurité |
 | Builds mobiles | EAS Build + EAS Update | Builds stores et correctifs rapides |
 | Suivi des erreurs | Sentry (API, admin, mobile), sans données personnelles | Détecter les plantages |
 
@@ -145,12 +145,26 @@ ajouter le cas, modifier le TypeScript et le PHP, puis `npm run sync:prototype`.
 
 ## 5. Hors connexion
 
-- Un « pack » par catégorie : fichier JSON des objets + images + sons, généré par un worker
-  et servi depuis le CDN avec un numéro de version.
-- L'app télécharge les packs choisis par le parent, les stocke dans le dossier de l'app
-  et le catalogue dans SQLite local.
+- Un « pack » par catégorie (`GET /packs/{slug}`) : les objets dans **toutes** les langues actives,
+  avec l'adresse de chaque image (grande + vignette) et de chaque son. Sa version est l'empreinte
+  du contenu (12 caractères) : elle change dès qu'un nom, une variante, une image ou un son change.
+  `GET /packs` donne la liste, la version et la taille à télécharger. Le pack est construit par
+  `PackBuilder` et gardé en cache tant que la catégorie ne change pas.
+- Le parent télécharge les catégories dans l'espace parent (« Jouer sans réseau »).
+  Téléphone : dossier Documents de l'app, `packs/{slug}-{version}/` (fichiers + `pack.json`).
+  Web : Cache Storage du navigateur, lu en adresses `blob:`. L'index (version, taille, fichiers)
+  est dans AsyncStorage.
+- Mise à jour sans risque : la nouvelle version est téléchargée à côté, puis on bascule et on
+  efface l'ancienne. Un échec laisse la version installée intacte. Quelques fichiers manquants
+  sur le serveur (moins de 10 %) n'empêchent pas l'installation : l'app garde l'émoji ou la voix
+  du téléphone.
+- Sans réseau, l'accueil ne propose que les catégories téléchargées et l'app compose la série
+  elle-même (même règle que `SeriesBuilder` : jamais deux fois le même objet de suite).
+  En ligne, les fichiers déjà téléchargés remplacent ceux du serveur (moins d'attente, moins de données).
 - Les résultats de jeu sont mis en file locale et envoyés à la reconnexion
   (idempotence par identifiant unique généré sur le téléphone).
+- Plus tard (phase 5) : packs construits par un worker et servis par le CDN, objets « à revoir »
+  hors connexion.
 
 ## 6. Environnements
 

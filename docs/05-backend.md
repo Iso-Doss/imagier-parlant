@@ -110,7 +110,8 @@ Format : JSON, dates ISO 8601 UTC, langue par `?lang=` ou `Accept-Language`, en-
 | GET | `/categories` | Catégories publiées (racines), `?parent=slug` pour les sous-catégories | ✅ (sans arbre) |
 | GET | `/categories/{slug}` | Une catégorie et ses objets | ✅ |
 | GET | `/series` | `categories`, `count` (1-100), `lang`, `translation`, `difficulty`, `profile` (si connecté : favorise les objets à revoir) | ✅ (sans difficulté ni profil) |
-| GET | `/packs` | Liste des packs hors connexion (catégorie, version, taille, URL CDN) | à faire |
+| GET | `/packs` | Liste des packs hors connexion : `slug`, `name`, `emoji`, `version`, `size` (octets), `items_count` | ✅ |
+| GET | `/packs/{slug}` | Contenu d'un pack : catégorie (noms par langue), langues, objets avec `texts.{langue}` (nom, phrase, variantes, son) | ✅ |
 
 Chaque objet renvoyé contient : `id`, `image_url` (+ `thumb_url`), `name`, `sentence`,
 `aliases`, `audio_url`, `category`, et `translation` si demandé.
@@ -184,7 +185,7 @@ Messages en français par défaut (`lang/fr`), traduits selon `Accept-Language`.
 | `MediaProcessor` | Image d'origine → WebP 768 px, 320 px, 96 px ; suppression des métadonnées EXIF |
 | `SpeechSynthesizer` | Appelle le service TTS, normalise le volume, encode en AAC 64 kbit/s, stocke sur S3 |
 | `CatalogImporter` | Lit le CSV par blocs de 500 lignes, valide, crée ou met à jour par `reference` |
-| `PackBuilder` | Construit le pack hors connexion d'une catégorie quand son contenu change |
+| `PackBuilder` | ✅ Construit le pack hors connexion d'une catégorie (toutes les langues), sa version (empreinte du contenu) et sa taille ; gardé en cache tant que la catégorie ne change pas. À faire : construction par un worker et dépôt sur le CDN |
 
 ## 5. Files d'attente (Redis + Horizon)
 
@@ -242,7 +243,7 @@ sont chargés (avec leurs traductions) : une seule requête de 10 à 100 lignes.
 - Tests unitaires de `AnswerMatcher` à partir du fichier partagé `shared/answer-cases.json`.
 - Test d'import sur un CSV de 1 000 lignes avec erreurs volontaires.
 - Test de charge (k6) avant la mise en production : 200 séries/s avec p95 < 150 ms.
-- État actuel : 21 tests, tous verts, sur SQLite et MySQL ; Larastan niveau 5 sans erreur.
+- État actuel : 40 tests, tous verts, sur SQLite et MySQL ; Larastan niveau 5 sans erreur.
 
 ## 10. Commandes utiles
 
