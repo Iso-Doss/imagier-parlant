@@ -7,7 +7,7 @@ import { CountdownRing } from "../components/CountdownRing"
 import { Wiggle } from "../components/motion"
 import { BigButton, SmallButton } from "../components/ui"
 import { strings } from "../i18n"
-import { fonts, hardShadow, useTheme } from "../theme"
+import { TEXT_SCALE, fonts, hardShadow, useTheme } from "../theme"
 
 /** Bienvenue (premier lancement) : trois écrans qui montrent le jeu en le jouant. */
 export function WelcomeScreen({ lang, onDone }: { lang: string; onDone: (next: "play" | "account") => void }) {
@@ -73,8 +73,8 @@ function QuestionSlide({ text, locale }: { text: string; locale: string }) {
   useEffect(() => { const timer = setTimeout(() => say(text, locale), 400); return () => clearTimeout(timer) }, [text, locale])
   return (
     <>
-      <Card><Text style={styles.emoji}>🍎</Text></Card>
-      <Animated.Text entering={FadeInUp.delay(150)} style={[styles.title, { color: t.ink }]}>{text}</Animated.Text>
+      <Card><Text style={styles.emoji} allowFontScaling={false} accessible={false} aria-hidden>🍎</Text></Card>
+      <Animated.Text entering={FadeInUp.delay(150)} maxFontSizeMultiplier={TEXT_SCALE.kid} accessibilityRole="header" style={[styles.title, { color: t.ink }]}>{text}</Animated.Text>
     </>
   )
 }
@@ -99,11 +99,11 @@ function AnswerSlide({ text, locale }: { text: string; locale: string }) {
   }, [left, text, locale])
   return (
     <>
-      <Card><Text style={styles.emoji}>🍎</Text></Card>
+      <Card><Text style={styles.emoji} allowFontScaling={false} accessible={false} aria-hidden>🍎</Text></Card>
       <View style={styles.stage}>
         {left > 0
           ? <CountdownRing progress={(3 - left) / 3} seconds={left} />
-          : <Animated.Text entering={FadeInUp} style={[styles.title, { color: t.leaf }]}>{text}</Animated.Text>}
+          : <Animated.Text entering={FadeInUp} maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.title, { color: t.leaf }]}>{text}</Animated.Text>}
       </View>
     </>
   )
@@ -117,12 +117,12 @@ function MicSlide({ text, locale }: { text: string; locale: string }) {
       <Animated.View entering={ZoomIn.springify()}>
         <Wiggle>
           <View style={[styles.mic, { backgroundColor: t.sun, borderColor: t.edge }, hardShadow(t.drop, 5)]}>
-            <Text style={{ fontSize: 64 }}>🎤</Text>
-            <Text style={styles.smile}>😊</Text>
+            <Text style={{ fontSize: 64 }} allowFontScaling={false} accessible={false} aria-hidden>🎤</Text>
+            <Text style={styles.smile} allowFontScaling={false} accessible={false} aria-hidden>😊</Text>
           </View>
         </Wiggle>
       </Animated.View>
-      <Animated.Text entering={FadeIn.delay(200)} style={[styles.title, { color: t.ink }]}>{text}</Animated.Text>
+      <Animated.Text entering={FadeIn.delay(200)} maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.title, { color: t.ink }]}>{text}</Animated.Text>
     </>
   )
 }

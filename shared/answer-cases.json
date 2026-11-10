@@ -736,6 +736,17 @@
     {"lang":"fr","answer":"du feu","heard":"un rocher","expected":"wrong"},
     {"lang":"en","answer":"fire","heard":"a rock","expected":"wrong"},
     {"lang":"fr","answer":"un rocher","heard":"le soleil","expected":"wrong"},
-    {"lang":"en","answer":"a rock","heard":"the sun","expected":"wrong"}
-  ]
+    {"lang":"en","answer":"a rock","heard":"the sun","expected":"wrong"},
+    {"lang":"fr","answer":"un short","heard":"un t-shirt","expected":"close","note":"morceau d'un mot plus long : « shirt » n'est pas « short » (presque, pas juste)"},
+    {"lang":"fr","answer":"un short","heard":"t shirt","expected":"close","note":"même avec un espace"},
+    {"lang":"en","answer":"shorts","heard":"a T-shirt","expected":"close","note":"morceau d'un mot plus long"},
+    {"lang":"en","answer":"rice","heard":"an ice cream","expected":"close","note":"« ice » dans une phrase : pas un début avalé"},
+    {"lang":"en","answer":"a shop","heard":"a bus stop","expected":"close","note":"« stop » dans une phrase plus longue"},
+    {"lang":"fr","answer":"un panier","heard":"du papier toilette","expected":"close","note":"« papier » dans une phrase plus longue"},
+    {"lang":"fr","answer":"un lapin","heard":"oui c'est un lapin","expected":"correct","note":"mot exact au milieu d'une phrase"},
+    {"lang":"fr","answer":"un lapin","heard":"oui un lapon","expected":"close","note":"à peu près au milieu d'une phrase : presque"},
+    {"lang":"fr","answer":"un lapin","heard":"lapon","expected":"correct","note":"à peu près, dit seul"},
+    {"lang":"fr","answer":"un lapin","heard":"oui un lapain","expected":"correct","note":"même son au milieu d'une phrase"},
+    {"lang":"en","answer":"a shop","heard":"shop please","expected":"correct","note":"mot exact suivi d'un autre mot"}
+]
 }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native"
 import { parentStrings } from "../i18n-parent"
-import { fonts, hardShadow, useTheme } from "../theme"
+import { TEXT_SCALE, fonts, hardShadow, useTheme } from "../theme"
 import { SmallButton } from "./ui"
 
 /**
@@ -36,18 +36,18 @@ export function ParentGate({ visible, lang, onPass, onClose }: { visible: boolea
     <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
       <View style={[styles.backdrop, { backgroundColor: "#0B1424CC" }]}>
         <View style={[styles.card, { backgroundColor: t.paper, borderColor: t.edge }, hardShadow(t.drop, 6)]}>
-          <Text style={[styles.lock]}>🔒</Text>
-          <Text style={[styles.title, { color: t.ink }]}>{p.gateTitle}</Text>
+          <Text style={[styles.lock]} accessible={false} aria-hidden>🔒</Text>
+          <Text accessibilityRole="header" style={[styles.title, { color: t.ink }]}>{p.gateTitle}</Text>
           <Text style={[styles.question, { color: t.ink }]}>{p.gateQuestion(a, b)}</Text>
           <View style={styles.grid}>
             {choices.map((n) => (
               <Pressable key={n} onPress={() => pick(n)} accessibilityRole="button"
                 style={({ pressed }) => [styles.choice, { borderColor: t.edge, backgroundColor: pressed ? t.sun : t.sky }]}>
-                <Text style={[styles.choiceText, { color: t.ink }]}>{n}</Text>
+                <Text maxFontSizeMultiplier={TEXT_SCALE.button} style={[styles.choiceText, { color: t.ink }]}>{n}</Text>
               </Pressable>
             ))}
           </View>
-          {errors > 0 && <Text style={{ fontFamily: fonts.bodyBold, color: t.coral }}>{p.gateWrong}</Text>}
+          {errors > 0 && <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ fontFamily: fonts.bodyBold, color: t.coral }}>{p.gateWrong}</Text>}
           <SmallButton label={p.close} onPress={close} />
         </View>
       </View>
@@ -62,6 +62,6 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display, fontSize: 26 },
   question: { fontFamily: fonts.bodyBold, fontSize: 20 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" },
-  choice: { width: 120, height: 64, borderRadius: 16, borderWidth: 3, alignItems: "center", justifyContent: "center" },
+  choice: { width: 120, minHeight: 64, borderRadius: 16, borderWidth: 3, alignItems: "center", justifyContent: "center" },
   choiceText: { fontFamily: fonts.display, fontSize: 28 },
 })

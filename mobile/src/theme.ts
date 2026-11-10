@@ -43,6 +43,12 @@ export const fonts = {
   bodyBold: "Nunito_800ExtraBold",
 }
 
+/**
+ * Agrandissement maximal du texte réglé sur le téléphone (Réglages › Taille du texte).
+ * L'espace parent suit le réglage sans limite ; côté enfant, les grands textes sont déjà gros.
+ */
+export const TEXT_SCALE = { button: 1.6, kid: 1.3, huge: 1.15 }
+
 export const hardShadow = (color: string, offset = 4) => ({
   shadowColor: color,
   shadowOffset: { width: offset, height: offset },

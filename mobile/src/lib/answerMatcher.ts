@@ -161,12 +161,19 @@ export function matchAnswer(heard: string | string[], forms: string[], options: 
     const limit = threshold(target, tolerance);
     const key = phonetic(compact, lang);
     for (const candidate of candidates) {
+      const said = candidate.replace(/ /g, "");
       for (const piece of windows(candidate.split(" "), target.split(" ").length)) {
         if (piece === compact) return "correct";
         if (tolerance === "strict") continue;
         const distance = levenshtein(piece, compact) + firstLetterPenalty(piece, compact);
         const sound = phonetic(piece, lang);
         if (key.length >= 2 && sound === key) return "correct";
+        // Un morceau d'une phrase plus longue (« shirt » dans « t-shirt », « stop » dans « bus stop »)
+        // doit être exact : à peu près, ce serait souvent un autre mot.
+        if (piece !== said) {
+          if (distance <= limit + 1 && distance / compact.length <= 0.34) close = true;
+          continue;
+        }
         // Au-delà d'une lettre d'écart, il faut aussi que les deux mots sonnent presque pareil.
         if (distance <= Math.min(limit, 1)) return "correct";
         if (distance <= limit && levenshtein(sound, key) <= (tolerance === "lenient" ? 2 : 1)) return "correct";

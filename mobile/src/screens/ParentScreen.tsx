@@ -42,7 +42,7 @@ export function ParentScreen({ lang, settings, update, onClose }: {
       <ScrollView contentContainerStyle={[styles.content, wide && { maxWidth: 1160 }, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 }]} keyboardShouldPersistTaps="handled">
         <View style={styles.bar}>
           <SmallButton icon="←" label={p.back} onPress={onClose} />
-          <Text style={[styles.title, { color: t.ink }]}>{p.parentArea}</Text>
+          <Text accessibilityRole="header" style={[styles.title, { color: t.ink }]}>{p.parentArea}</Text>
         </View>
         {wide ? (
           <View style={styles.columns}>
@@ -78,7 +78,7 @@ function MicCard({ p, settings, update }: { p: ParentStrings; settings: Settings
 
   return (
     <Card>
-      <Text style={[styles.h2, { color: t.ink }]}>🎤 {p.mic}</Text>
+      <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>🎤 {p.mic}</Text>
       <Text style={[styles.text, { color: t.muted }]}>{p.micText}</Text>
       {permission === null && <ActivityIndicator color={t.ink} />}
       {permission === "unavailable" && <Text style={[styles.small, { color: t.ink }]}>{p.micUnavailable}</Text>}
@@ -138,7 +138,7 @@ function VoiceCard({ p, settings, update }: { p: ParentStrings; settings: Settin
 
   return (
     <Card>
-      <Text style={[styles.h2, { color: t.ink }]}>🗣️ {p.voice}</Text>
+      <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>🗣️ {p.voice}</Text>
       <Text style={[styles.text, { color: t.muted }]}>{p.voiceText}</Text>
       <View style={styles.row}>
         {VOICE_LANGS.map(([code]) => <Chip key={code} label={code === "fr" ? "Français" : "English"} selected={lang === code} onPress={() => setLang(code)} />)}
@@ -152,7 +152,7 @@ function VoiceCard({ p, settings, update }: { p: ParentStrings; settings: Settin
             const selected = current === id
             const label = id ? voice.name : p.voiceAuto(ranked[0].name)
             return (
-              <Pressable key={id ?? "auto"} onPress={() => choose(id)} accessibilityRole="radio" accessibilityState={{ checked: selected }}
+              <Pressable key={id ?? "auto"} onPress={() => choose(id)} accessibilityRole="radio" accessibilityState={{ checked: selected }} aria-checked={selected}
                 style={[styles.voice, { borderColor: t.edge, backgroundColor: selected ? t.sun : t.paper }]}>
                 <View style={[styles.dot, { borderColor: t.edge, backgroundColor: selected ? t.ink : "transparent" }]} />
                 <View style={{ flex: 1 }}>
@@ -192,7 +192,7 @@ function OfflineCard({ p, lang }: { p: ParentStrings; lang: string }) {
   if (!off.supported) {
     return (
       <Card>
-        <Text style={[styles.h2, { color: t.ink }]}>📥 {p.offline}</Text>
+        <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>📥 {p.offline}</Text>
         <Text style={[styles.small, { color: t.muted }]}>{p.offlineUnsupported}</Text>
       </Card>
     )
@@ -212,7 +212,7 @@ function OfflineCard({ p, lang }: { p: ParentStrings; lang: string }) {
 
   return (
     <Card>
-      <Text style={[styles.h2, { color: t.ink }]}>📥 {p.offline}</Text>
+      <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>📥 {p.offline}</Text>
       <Text style={[styles.text, { color: t.muted }]}>{p.offlineText}</Text>
       {noNetwork && <Text style={[styles.small, { color: t.ink }]}>{p.offlineNoNetwork}</Text>}
       {remote === null || !off.ready ? <ActivityIndicator color={t.ink} /> : (
@@ -322,7 +322,7 @@ function AuthFlow({ p, lang }: { p: ParentStrings; lang: string }) {
 
       {step === "code" && (
         <>
-          <Text style={[styles.h2, { color: t.ink }]}>{p.codeTitle}</Text>
+          <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>{p.codeTitle}</Text>
           <Text style={[styles.text, { color: t.muted }]}>{info ?? p.codeText(email)}</Text>
           <CodeField value={code} onChange={setCode} error={error?.field("code")} label={p.code} />
           <BigButton label={busy ? "…" : p.confirm} disabled={busy || code.length !== 6} onPress={() => run(() => acc.verify(email.trim(), code))} />
@@ -333,7 +333,7 @@ function AuthFlow({ p, lang }: { p: ParentStrings; lang: string }) {
 
       {step === "forgot" && (
         <>
-          <Text style={[styles.h2, { color: t.ink }]}>{p.forgot}</Text>
+          <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>{p.forgot}</Text>
           <Text style={[styles.text, { color: t.muted }]}>{p.forgotText}</Text>
           <Field label={p.email} value={email} onChangeText={setEmail} error={error?.field("email")} keyboardType="email-address" autoCapitalize="none" />
           <BigButton label={busy ? "…" : p.sendCode} disabled={busy || !email} onPress={() => run(async () => { await acc.forgot(email.trim()); go("reset") })} />
@@ -343,7 +343,7 @@ function AuthFlow({ p, lang }: { p: ParentStrings; lang: string }) {
 
       {step === "reset" && (
         <>
-          <Text style={[styles.h2, { color: t.ink }]}>{p.codeTitle}</Text>
+          <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>{p.codeTitle}</Text>
           <Text style={[styles.text, { color: t.muted }]}>{p.codeText(email)}</Text>
           <CodeField value={code} onChange={setCode} error={error?.field("code")} label={p.code} />
           <Field label={p.newPassword} hint={p.passwordHint} value={password} onChangeText={setPassword} error={error?.field("password")} secureTextEntry textContentType="newPassword" />
@@ -372,7 +372,7 @@ function Signed({ p, lang }: { p: ParentStrings; lang: string }) {
     <>
       <Card>
         <View style={styles.rowBetween}>
-          <Text style={[styles.h2, { color: t.ink }]}>{p.profiles}</Text>
+          <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>{p.profiles}</Text>
           {acc.profiles.length < 6 && editing === null && <SmallButton icon="+" label={p.addProfile} onPress={() => setEditing("new")} />}
         </View>
         {editing === "new" && <ProfileForm p={p} onDone={() => setEditing(null)} />}
@@ -382,7 +382,7 @@ function Signed({ p, lang }: { p: ParentStrings; lang: string }) {
       </Card>
 
       <Card>
-        <Text style={[styles.h2, { color: t.ink }]}>{p.account}</Text>
+        <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>{p.account}</Text>
         <Text style={[styles.text, { color: t.ink }]}>{acc.account?.email}</Text>
         <SmallButton label={p.logout} onPress={() => acc.logout()} />
         {!deleting ? (
@@ -520,7 +520,7 @@ function Field({ label, hint, error, ...input }: TextInputProps & { label: strin
   return (
     <View style={{ gap: 4 }}>
       <Text style={[styles.label, { color: t.ink }]}>{label}</Text>
-      <TextInput {...input} placeholderTextColor={t.muted}
+      <TextInput accessibilityLabel={label} accessibilityHint={error ?? hint} {...input} placeholderTextColor={t.muted}
         style={[styles.input, { borderColor: error ? t.coral : t.edge, color: t.ink, backgroundColor: t.sky }]} />
       {error ? <ErrorText text={error} /> : hint ? <Text style={[styles.small, { color: t.muted }]}>{hint}</Text> : null}
     </View>
@@ -536,7 +536,7 @@ function CodeField({ value, onChange, error, label }: { value: string; onChange:
 function Tab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   const t = useTheme()
   return (
-    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: active }}
+    <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected: active }} aria-selected={active}
       style={[styles.tab, { borderColor: t.edge, backgroundColor: active ? t.ink : t.paper }]}>
       <Text style={{ fontFamily: fonts.bodyBold, color: active ? t.paper : t.ink, fontSize: 15 }}>{label}</Text>
     </Pressable>
@@ -560,7 +560,8 @@ function LinkText({ label, onPress, danger }: { label: string; onPress: () => vo
 
 function ErrorText({ text }: { text: string }) {
   const t = useTheme()
-  return <Text style={[styles.small, { color: t.coral }]}>{text}</Text>
+  // Annoncée dès qu'elle apparaît (lecteur d'écran)
+  return <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={[styles.small, { color: t.coral }]}>{text}</Text>
 }
 
 const styles = StyleSheet.create({
