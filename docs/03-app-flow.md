@@ -82,7 +82,10 @@ jusqu'à remplir l'écran avec les émojis des catégories choisies, puis laisse
 première image (rien de tout ça avec « Réduire les animations »).
 
 - Grandes cartes colorées : image de la catégorie + nom (écrit **et** dit au toucher).
-- Haut de l'écran : avatar du profil (toucher = changer de profil), bouton cadenas (espace parent).
+- Haut de l'écran, trois boutons : **langue** (FR / EN, toucher = langue suivante), **thème**
+  (🌓 comme le téléphone → ☀️ clair → 🌙 sombre, choix gardé) et **compte** (👤 ou l'avatar
+  du profil qui joue, petit cadenas : connexion, création de compte et espace parent, derrière
+  le portail parental). Le prototype web a les mêmes boutons de langue et de thème (pas de compte).
 - Les catégories téléchargées ont une petite pastille ✓ ; sans réseau, seules elles sont actives.
 - Toucher une catégorie → elle se colore et rebondit (sélection multiple possible).
 - Une catégorie mère (Animaux) ouvre ses sous-catégories (Ferme, Savane, Mer…) en glissant vers la droite ;

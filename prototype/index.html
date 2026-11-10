@@ -45,6 +45,9 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance}
   display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:28px;color:var(--sun-ink);transform:rotate(-6deg)}
 .brand h1{font-size:1.7rem;font-weight:800}
 .brand p{margin:0;color:var(--muted);font-size:.9rem}
+.tools{display:flex;align-items:center;gap:8px}
+.tool{width:46px;height:46px;border:3px solid var(--edge);border-radius:14px;background:var(--paper);box-shadow:3px 3px 0 var(--drop);font-size:20px;display:grid;place-items:center}
+.tool:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--drop)}
 .seg{display:inline-flex;border:3px solid var(--edge);border-radius:14px;background:var(--paper);overflow:hidden;box-shadow:3px 3px 0 var(--drop)}
 .seg button{padding:8px 14px;font-weight:800;min-width:48px}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
@@ -159,8 +162,11 @@ h1,h2,h3{font-family:var(--display);margin:0;line-height:1.1;text-wrap:balance}
       <div class="logo" aria-hidden="true">?</div>
       <div><h1 data-t="appName">Imagier parlant</h1><p data-t="tagline"></p></div>
     </div>
-    <div class="seg" role="group" aria-label="Langue / Language">
-      <button id="lang-fr" data-lang="fr">FR</button><button id="lang-en" data-lang="en">EN</button>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="Langue / Language">
+        <button id="lang-fr" data-lang="fr">FR</button><button id="lang-en" data-lang="en">EN</button>
+      </div>
+      <button id="themeBtn" class="tool" type="button"></button>
     </div>
   </header>
 
@@ -478,6 +484,7 @@ const T = {
   question:"Qu'est-ce que c'est ?", sentence:it=>it.frS || `C'est ${it.fr}`, word:it=>it.fr, other:it=>it.en, otherFlag:"EN",
   repeat:"Répéter", next:"Suivant", answer:"Réponse", paused:"Pause", resume:"Reprendre",
   bravo:"Bravo !", doneText:n=>`Tu as découvert ${n} images. Voici tout ce que tu as vu :`, again:"Rejouer la même série", changeCats:"Changer de catégories",
+  theme:m=>`Thème : ${m}. Toucher pour changer.`, themeNames:{system:"comme l'appareil", light:"clair", dark:"sombre"},
   mixed:"Mélange", noVoice:"Aucune voix française trouvée sur cet appareil : l'application s'affichera sans le son.",
   voiceOk:v=>`Voix utilisée : ${v}.`},
  en:{appName:"Talking Picture Book", tagline:"One picture, one question, one word.", chooseCats:"Pick categories", all:"Select all", none:"Clear all",
@@ -493,13 +500,14 @@ const T = {
   question:"What is this?", sentence:it=>it.enS || `It's ${it.en}`, word:it=>it.en, other:it=>it.fr, otherFlag:"FR",
   repeat:"Repeat", next:"Next", answer:"Answer", paused:"Paused", resume:"Resume",
   bravo:"Well done!", doneText:n=>`You discovered ${n} pictures. Here is everything you saw:`, again:"Play the same series", changeCats:"Change categories",
+  theme:m=>`Theme: ${m}. Tap to change.`, themeNames:{system:"same as the device", light:"light", dark:"dark"},
   mixed:"Mixed", noVoice:"No English voice found on this device: the app will run without sound.",
   voiceOk:v=>`Voice: ${v}.`}
 };
 const NUMS = {fr:["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix"], en:["zero","one","two","three","four","five","six","seven","eight","nine","ten"]};
 
 // ---------- Réglages (gardés sur cet appareil) ----------
-const DEF = {lang:"fr", cats:["fruits","animaux","maison"], len:10, delay:5, count:"tick", word:true, trans:false, auto:true, mic:false};
+const DEF = {lang:"fr", cats:["fruits","animaux","maison"], len:10, delay:5, count:"tick", word:true, trans:false, auto:true, mic:false, theme:"system"};
 let S = {...DEF};
 try{ const saved = JSON.parse(localStorage.getItem("imagier-settings")||"null"); if(saved) S = {...DEF, ...saved}; }catch(e){}
 const save = ()=>{ try{ localStorage.setItem("imagier-settings", JSON.stringify(S)); }catch(e){} };
@@ -625,10 +633,21 @@ function goStep(n){
   const panel = $(n===1 ? "stepCatsPanel" : "stepSeriesPanel");
   panel.classList.remove("step-in"); void panel.offsetWidth; panel.classList.add("step-in");
 }
+// Thème : celui de l'appareil, clair ou sombre (même choix que l'app)
+const THEMES = ["system","light","dark"];
+function applyTheme(){
+  const m = S.theme || "system";
+  if(m==="system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = m;
+  const b = $("themeBtn");
+  b.textContent = m==="light" ? "☀️" : m==="dark" ? "🌙" : "🌓";
+  b.setAttribute("aria-label", t("theme")(t("themeNames")[m]));
+  b.title = b.getAttribute("aria-label");
+}
 function renderHome(){
   document.documentElement.lang = S.lang;
   document.querySelectorAll("[data-t]").forEach(el=>{ const v=t(el.dataset.t); if(typeof v==="string") el.textContent=v; });
   $("lang-fr").setAttribute("aria-pressed", S.lang==="fr"); $("lang-en").setAttribute("aria-pressed", S.lang==="en");
+  applyTheme();
   $("cats").innerHTML = CATS.map(c=>`<button class="cat" style="--tint:${c.tint}" data-id="${c.id}" aria-pressed="${S.cats.includes(c.id)}">
       <span class="check" aria-hidden="true">✓</span><span class="em" aria-hidden="true">${c.em}</span>
       <span class="name">${c[S.lang]}</span><span class="count">${t("objects")(c.items.length)}</span></button>`).join("");
@@ -656,6 +675,7 @@ function sw(id,key){ const el=$(id); el.setAttribute("aria-checked", !!S[key]); 
 $("cats").onclick = e=>{ const c=e.target.closest(".cat"); if(!c) return; const id=c.dataset.id;
   S.cats = S.cats.includes(id) ? S.cats.filter(x=>x!==id) : [...S.cats,id]; save(); renderHome(); };
 $("toggleAll").onclick = ()=>{ S.cats = S.cats.length===CATS.length ? [] : CATS.map(c=>c.id); save(); renderHome(); };
+$("themeBtn").onclick = ()=>{ S.theme = THEMES[(THEMES.indexOf(S.theme||"system")+1)%THEMES.length]; save(); applyTheme(); };
 document.querySelectorAll("[data-lang]").forEach(b=>b.onclick=()=>{ S.lang=b.dataset.lang; save(); renderHome(); });
 
 // ---------- Série ----------

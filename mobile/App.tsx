@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import { ActivityIndicator, View } from "react-native"
+import { ActivityIndicator, View, useColorScheme } from "react-native"
 import { StatusBar } from "expo-status-bar"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { useFonts, Baloo2_700Bold, Baloo2_800ExtraBold } from "@expo-google-fonts/baloo-2"
@@ -22,7 +22,7 @@ import { HomeScreen } from "./src/screens/HomeScreen"
 import { PlayScreen } from "./src/screens/PlayScreen"
 import { WelcomeScreen } from "./src/screens/WelcomeScreen"
 import { useSettings } from "./src/settings"
-import { useTheme } from "./src/theme"
+import { ThemePrefProvider, useTheme } from "./src/theme"
 
 type Screen = "home" | "play" | "done" | "parent"
 const WELCOME_KEY = "imagier-welcome-v1"
@@ -45,6 +45,8 @@ function Main() {
   const [fontsLoaded] = useFonts({ Baloo2_700Bold, Baloo2_800ExtraBold, Nunito_600SemiBold, Nunito_800ExtraBold })
   const { settings, update, ready } = useSettings()
   const theme = useTheme()
+  const system = useColorScheme()
+  const dark = settings.theme === "dark" || (settings.theme === "system" && system === "dark")
   const [screen, setScreen] = useState<Screen>("home")
   // Bienvenue au premier lancement seulement (null : pas encore lu)
   const [welcome, setWelcome] = useState<boolean | null>(null)
@@ -144,8 +146,8 @@ function Main() {
   }
 
   return (
-    <>
-      <StatusBar style="auto" />
+    <ThemePrefProvider value={settings.theme}>
+      <StatusBar style={dark ? "light" : "dark"} />
       {welcome && <WelcomeScreen lang={settings.lang} onDone={endWelcome} />}
       {!welcome && screen === "home" && <HomeScreen settings={settings} update={update} onStart={start} starting={starting} startError={startError} onParent={() => setGate(true)} />}
       {screen === "play" && series && (
@@ -157,6 +159,6 @@ function Main() {
       {screen === "parent" && <ParentScreen lang={settings.lang} settings={settings} update={update} onClose={() => setScreen("home")} />}
       {launch && <LaunchOverlay from={launch.from} emojis={launch.emojis} stage={launch.stage} onGone={endLaunch} />}
       <ParentGate visible={gate} lang={settings.lang} onClose={() => setGate(false)} onPass={() => { setGate(false); setScreen("parent") }} />
-    </>
+    </ThemePrefProvider>
   )
 }

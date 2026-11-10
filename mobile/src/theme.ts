@@ -1,3 +1,4 @@
+import { createContext, useContext } from "react"
 import { useColorScheme } from "react-native"
 
 // Same palette as the web prototype: flash cards with ink outlines and hard shadows.
@@ -13,8 +14,20 @@ const dark: typeof light = {
 }
 export type Theme = typeof light
 
+/** Thème choisi : celui du téléphone, clair ou sombre */
+export type ThemePref = "system" | "light" | "dark"
+const ThemePrefContext = createContext<ThemePref>("system")
+/** À placer autour de l'app avec le choix gardé dans les réglages */
+export const ThemePrefProvider = ThemePrefContext.Provider
+
+export function useIsDark(): boolean {
+  const pref = useContext(ThemePrefContext)
+  const system = useColorScheme()
+  return pref === "dark" || (pref === "system" && system === "dark")
+}
+
 export function useTheme(): Theme {
-  return useColorScheme() === "dark" ? dark : light
+  return useIsDark() ? dark : light
 }
 
 /** Category colours come from the admin in light tones; in dark mode use the matching dark tint. */
