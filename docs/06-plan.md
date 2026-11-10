@@ -103,7 +103,8 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
 - [x] Partie : anneau qui devient vert (✓) sur une bonne réponse
 - [x] Toucher : boutons qui s'enfoncent en ressort (0,94), cartes de catégorie qui rebondissent (1,08)
 - [ ] Mascotte (dessin à faire)
-- [ ] Transition partagée catégorie → partie
+- [x] Transition accueil → partie : le bouton « Commencer » grandit jusqu'à remplir l'écran avec les
+  catégories choisies, pendant le chargement de la série ; il se replie si la série ne vient pas
 - [x] Préchargement des 3 images et sons suivants (`src/preload.ts`)
 - [ ] Mesurer l'attente entre deux objets sur un vrai téléphone
 - [x] Fin de série festive : étoiles qui tombent, score qui compte, étoile qui danse
@@ -111,7 +112,8 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
   puis « Jouer tout de suite » ou « Créer un compte » (portail parental)
 - [ ] Sous-catégories à l'accueil
 - [x] Mise en page tablette en paysage pour la partie (image à gauche, réponse à droite)
-- [ ] Mise en page tablette pour l'accueil et l'espace parent (déjà en 3-4 colonnes, à affiner)
+- [x] Mise en page tablette : accueil en deux colonnes en paysage (catégories | série, sans étapes),
+  espace parent en deux colonnes dès 900 px (compte | micro et hors connexion)
 - [x] « Réduire les animations » du système respecté (aucune animation de mouvement, pas de confettis)
 - [ ] Tailles de texte, VoiceOver / TalkBack côté parent
 - [x] Mode hors connexion : packs par catégorie (`/packs`), téléchargement depuis l'espace parent,

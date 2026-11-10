@@ -76,6 +76,11 @@ on choisit d'abord les catégories, puis « Suivant » ouvre les réglages de la
 revenir aux catégories à tout moment (pastille ① ou « Changer de catégories »). L'étape ②
 n'est accessible qu'avec au moins une catégorie choisie.
 
+Sur tablette en paysage (900 px et plus), pas d'étapes : les catégories à gauche, les réglages
+de la série à droite, et le bouton « Commencer » en bas. Au toucher de ce bouton, il grandit
+jusqu'à remplir l'écran avec les émojis des catégories choisies, puis laisse place à la
+première image (rien de tout ça avec « Réduire les animations »).
+
 - Grandes cartes colorées : image de la catégorie + nom (écrit **et** dit au toucher).
 - Haut de l'écran : avatar du profil (toucher = changer de profil), bouton cadenas (espace parent).
 - Les catégories téléchargées ont une petite pastille ✓ ; sans réseau, seules elles sont actives.

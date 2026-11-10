@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { ActivityIndicator, View } from "react-native"
 import { StatusBar } from "expo-status-bar"
 import { SafeAreaProvider } from "react-native-safe-area-context"
@@ -12,6 +12,8 @@ import { coversCategories, localizeSeries, seriesFromPacks } from "./src/lib/pac
 import { loadOffline, offlineState } from "./src/offline"
 import { strings } from "./src/i18n"
 import { ParentGate } from "./src/components/ParentGate"
+import { LAUNCH_MS, LaunchOverlay, type LaunchStage, type Rect } from "./src/components/LaunchOverlay"
+import { useReducedMotion } from "react-native-reanimated"
 import { ParentScreen } from "./src/screens/ParentScreen"
 import type { PlayResult } from "./src/screens/PlayScreen"
 import { initAudio } from "./src/audio"
@@ -60,10 +62,17 @@ function Main() {
   const [playKey, setPlayKey] = useState(0)
   const [starting, setStarting] = useState(false)
   const [startError, setStartError] = useState<string | null>(null)
+  // Transition du bouton « Commencer » vers la partie
+  const reduced = useReducedMotion()
+  const [launch, setLaunch] = useState<{ from: Rect; emojis: string[]; stage: LaunchStage } | null>(null)
+  const endLaunch = useCallback(() => setLaunch(null), [])
 
-  const start = async () => {
+  const start = async (from?: Rect, emojis: string[] = []) => {
     setStarting(true)
     setStartError(null)
+    if (from && !reduced) setLaunch({ from, emojis, stage: "grow" })
+    // La partie n'apparaît qu'une fois l'écran rempli (même si la série arrive plus vite)
+    const grown = new Promise((r) => setTimeout(r, from && !reduced ? LAUNCH_MS : 0))
     try {
       await initAudio()
       const other = settings.lang === "fr" ? "en" : "fr"
@@ -87,9 +96,12 @@ function Main() {
         s = seriesFromPacks(off.packs, { lang: settings.lang, categories: settings.categories, count: settings.count, translation }, off.files)
       }
       if (!s?.items.length) throw new Error("Ces catégories n'ont pas encore d'images.")
+      await grown
       setSeries(s)
       beginPlay()
+      setLaunch((l) => l && { ...l, stage: "leave" })
     } catch (e) {
+      setLaunch((l) => l && { ...l, stage: "cancel" })
       setStartError((e as Error).message)
     } finally {
       setStarting(false)
@@ -140,6 +152,7 @@ function Main() {
         <DoneScreen series={series} results={results} lang={settings.lang} onAgain={again} onHome={() => setScreen("home")} />
       )}
       {screen === "parent" && <ParentScreen lang={settings.lang} settings={settings} update={update} onClose={() => setScreen("home")} />}
+      {launch && <LaunchOverlay from={launch.from} emojis={launch.emojis} stage={launch.stage} onGone={endLaunch} />}
       <ParentGate visible={gate} lang={settings.lang} onClose={() => setGate(false)} onPass={() => { setGate(false); setScreen("parent") }} />
     </>
   )
