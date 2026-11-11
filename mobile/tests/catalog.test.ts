@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { matchAnswer } from "../src/lib/answerMatcher";
 
 type Item = { emoji: string; fr: string; en: string; fr_sentence?: string; en_sentence?: string; fr_aliases?: string[]; en_aliases?: string[] };
-type Category = { slug: string; emoji: string; color: string; names: { fr: string; en: string }; items: Item[] };
+type Category = { slug: string; parent?: string; emoji: string; color: string; names: { fr: string; en: string }; items: Item[] };
 
 const file = join(__dirname, "..", "..", "api", "database", "seeders", "data", "catalog.json");
 const catalog = JSON.parse(readFileSync(file, "utf8")) as { categories: Category[] };
@@ -29,6 +29,17 @@ test("catégories : slug, noms et couleur", () => {
     assert.match(c.slug, /^[a-z][a-z0-9-]*$/, c.slug);
     assert.ok(c.names.fr && c.names.en, `${c.slug} : nom manquant`);
     assert.match(c.color, /^#[0-9A-F]{6}$/i, `${c.slug} : couleur`);
+  }
+});
+
+test("sous-catégories : le parent existe, est principal et vient avant", () => {
+  const slugs = catalog.categories.map((c) => c.slug);
+  for (const [i, c] of catalog.categories.entries()) {
+    if (!c.parent) continue;
+    const parent = catalog.categories.find((p) => p.slug === c.parent);
+    assert.ok(parent, `${c.slug} : parent ${c.parent} introuvable`);
+    assert.equal(parent.parent, undefined, `${c.slug} : ${c.parent} est déjà une sous-catégorie (deux niveaux au plus)`);
+    assert.ok(slugs.indexOf(c.parent) < i, `${c.slug} : son parent doit venir avant dans le fichier`);
   }
 });
 

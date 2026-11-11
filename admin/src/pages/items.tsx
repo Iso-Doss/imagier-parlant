@@ -91,7 +91,7 @@ export function ItemsPage() {
           <SelectTrigger className="w-full" aria-label="Catégorie"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Toutes les catégories</SelectItem>
-            {categories.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.emoji} {displayName(c.translations, languages)}</SelectItem>)}
+            {categories.map((c) => <SelectItem key={c.id} value={String(c.id)} className={c.parent_id ? "pl-6" : ""}>{c.parent_id ? "↳ " : ""}{c.emoji} {displayName(c.translations, languages)}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={params.get("missing") ?? ALL} onValueChange={(v) => setParam("missing", v)}>

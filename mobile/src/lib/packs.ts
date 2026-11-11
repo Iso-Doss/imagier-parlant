@@ -2,13 +2,17 @@
 import type { Category, Item, Language, Series } from "../api"
 
 export type PackText = { name: string; sentence: string | null; aliases: string[]; audio_url: string | null }
-export type PackItem = { id: number; emoji: string | null; image_url: string | null; thumb_url: string | null; texts: Record<string, PackText> }
+/** `category` : la sous-catégorie de l'objet (ou la catégorie du pack) */
+export type PackItem = { id: number; category?: string; emoji: string | null; image_url: string | null; thumb_url: string | null; texts: Record<string, PackText> }
+export type PackCategory = { slug: string; emoji: string | null; color: string | null; image_url: string | null; thumb_url: string | null; names: Record<string, string | null> }
 export type Pack = {
   slug: string
   version: string
   size: number
   items_count: number
-  category: { slug: string; emoji: string | null; color: string | null; image_url: string | null; thumb_url: string | null; names: Record<string, string | null> }
+  category: PackCategory
+  /** Sous-catégories (un pack par catégorie principale) */
+  children?: PackCategory[]
   languages: Language[]
   items: PackItem[]
 }
@@ -30,7 +34,7 @@ export function packState(installed: { version: string } | undefined, remote: { 
 export function packFiles(pack: Pack): string[] {
   const urls = new Set<string>()
   const add = (u: string | null | undefined) => { if (u) urls.add(u) }
-  add(pack.category.thumb_url ?? pack.category.image_url)
+  for (const c of [pack.category, ...(pack.children ?? [])]) add(c.thumb_url ?? c.image_url)
   for (const item of pack.items) {
     add(item.image_url)
     add(item.thumb_url)
@@ -46,18 +50,28 @@ export function fileNameFor(url: string): string {
   return clean.slice(-120) || "fichier"
 }
 
-/** Les catégories des packs installés, dans la langue de l'app. */
+/** Les catégories des packs installés (avec leurs sous-catégories), dans la langue de l'app. */
 export function categoriesFromPacks(packs: Pack[], lang: string, files: FileMap): Category[] {
-  return packs.map((p, i) => ({
-    id: -1 - i,
-    slug: p.slug,
-    name: p.category.names[lang] ?? Object.values(p.category.names).find(Boolean) ?? p.slug,
-    emoji: p.category.emoji,
-    color: p.category.color,
-    image_url: local(p.category.image_url, files),
-    thumb_url: local(p.category.thumb_url, files),
-    items_count: p.items.filter((it) => it.texts[lang]).length,
-  }))
+  let id = 0
+  const make = (c: PackCategory, items: PackItem[]): Category => ({
+    id: -1 - id++,
+    slug: c.slug,
+    name: c.names[lang] ?? Object.values(c.names).find(Boolean) ?? c.slug,
+    emoji: c.emoji,
+    color: c.color,
+    image_url: local(c.image_url, files),
+    thumb_url: local(c.thumb_url, files),
+    items_count: items.filter((it) => it.texts[lang]).length,
+  })
+  return packs.map((p) => {
+    const children = (p.children ?? []).map((c) => make(c, p.items.filter((it) => it.category === c.slug)))
+    return { ...make(p.category, p.items), ...(children.length ? { children } : {}) }
+  })
+}
+
+/** Catégorie d'un objet du pack : sa sous-catégorie si elle existe, sinon celle du pack. */
+function categoryOf(item: PackItem, pack: Pack): PackCategory {
+  return pack.children?.find((c) => c.slug === item.category) ?? pack.category
 }
 
 export function languagesFromPacks(packs: Pack[]): Language[] {
@@ -84,15 +98,20 @@ export function itemFromPack(item: PackItem, pack: Pack, lang: string, files: Fi
     aliases: text.aliases,
     audio_url: local(text.audio_url, files),
     ...(translation ? { translation: item.texts[translation]?.name ?? null } : {}),
-    category: { slug: pack.slug, name: pack.category.names[lang] ?? null },
+    category: { slug: categoryOf(item, pack).slug, name: categoryOf(item, pack).names[lang] ?? null },
   }
+}
+
+/** Catégories et sous-catégories présentes dans les packs installés. */
+export function packSlugs(packs: Pack[]): Set<string> {
+  return new Set(packs.flatMap((p) => [p.slug, ...(p.children ?? []).map((c) => c.slug)]))
 }
 
 /** Les catégories demandées sont-elles toutes téléchargées ? (aucune = toutes les catégories) */
 export function coversCategories(packs: Pack[], categories: string[]): boolean {
   if (packs.length === 0) return false
   if (categories.length === 0) return true
-  const have = new Set(packs.map((p) => p.slug))
+  const have = packSlugs(packs)
   return categories.every((c) => have.has(c))
 }
 
@@ -106,8 +125,9 @@ export function seriesFromPacks(
   files: FileMap,
   random: () => number = Math.random,
 ): Series | null {
-  const chosen = opts.categories.length ? packs.filter((p) => opts.categories.includes(p.slug)) : packs
-  const pool = chosen.flatMap((p) => p.items.map((it) => itemFromPack(it, p, opts.lang, files, opts.translation)).filter((x): x is Item => !!x))
+  // Une catégorie principale choisie : tout le pack ; une sous-catégorie : ses objets seulement
+  const wanted = (p: Pack, it: PackItem) => !opts.categories.length || opts.categories.includes(p.slug) || opts.categories.includes(categoryOf(it, p).slug)
+  const pool = packs.flatMap((p) => p.items.filter((it) => wanted(p, it)).map((it) => itemFromPack(it, p, opts.lang, files, opts.translation)).filter((x): x is Item => !!x))
   const language = packs[0]?.languages.find((l) => l.code === opts.lang)
   if (!language || pool.length === 0) return null
 

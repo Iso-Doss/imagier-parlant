@@ -152,13 +152,43 @@ class AdminApiTest extends TestCase
         $this->assertSame($this->catalogItems() - $this->catalogItems('fruits'), Item::count());
     }
 
+    public function test_sub_categories_stay_two_levels_deep(): void
+    {
+        $this->actingAsAdmin();
+        $animals = Category::where('slug', 'animaux')->first();
+        $farm = Category::where('slug', 'ferme')->first();
+        $fruits = Category::where('slug', 'fruits')->first();
+
+        $savanna = $this->postJson('/api/v1/admin/categories', [
+            'slug' => 'savane', 'parent_id' => $animals->id, 'translations' => ['fr' => ['name' => 'La savane']],
+        ])->assertCreated()->assertJsonPath('data.parent_id', $animals->id)->json('data');
+        $this->assertSame(5, $savanna['sort_order']);
+
+        // Pas de troisième niveau, pas de boucle, et un parent reste principal
+        $this->patchJson("/api/v1/admin/categories/{$fruits->id}", ['parent_id' => $farm->id])->assertJsonValidationErrors('parent_id');
+        $this->patchJson("/api/v1/admin/categories/{$fruits->id}", ['parent_id' => $fruits->id])->assertJsonValidationErrors('parent_id');
+        $this->patchJson("/api/v1/admin/categories/{$animals->id}", ['parent_id' => $fruits->id])->assertJsonValidationErrors('parent_id');
+        $this->patchJson("/api/v1/admin/categories/{$fruits->id}", ['parent_id' => $animals->id])->assertOk();
+
+        // La liste : chaque principale suivie de ses sous-catégories
+        $list = collect($this->getJson('/api/v1/admin/categories')->json('data'));
+        $i = $list->search(fn ($c) => $c['slug'] === 'animaux');
+        $this->assertSame('ferme', $list[$i + 1]['slug']);
+        $this->assertSame(7, $list[$i]['children_count']);
+
+        // Supprimer un parent supprime ses sous-catégories et leurs objets
+        $this->deleteJson("/api/v1/admin/categories/{$animals->id}")->assertNoContent();
+        $this->assertDatabaseMissing('categories', ['slug' => 'ferme']);
+        $this->assertSame(0, Item::whereIn('category_id', [$farm->id])->count());
+    }
+
     public function test_categories_can_be_reordered(): void
     {
         $this->actingAsAdmin();
         $ids = Category::orderBy('sort_order')->pluck('id')->reverse()->values()->all();
 
         $this->postJson('/api/v1/admin/categories/reorder', ['ids' => $ids])
-            ->assertOk()->assertJsonPath('data.0.slug', collect($this->catalog()['categories'])->last()['slug']);
+            ->assertOk()->assertJsonPath('data.0.slug', $this->lastRootSlug());
     }
 
     public function test_languages_can_be_added_but_not_deleted_while_in_use(): void

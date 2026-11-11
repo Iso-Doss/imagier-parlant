@@ -31,7 +31,12 @@ export function mediaUrl(url: string | null | undefined): string | null {
 }
 
 export type Language = { code: string; name: string; tts_locale: string; question: string; answer_template: string }
-export type Category = { id: number; slug: string; name: string | null; emoji: string | null; color: string | null; image_url: string | null; thumb_url: string | null; items_count: number }
+export type Category = {
+  id: number; slug: string; name: string | null; emoji: string | null; color: string | null; image_url: string | null; thumb_url: string | null
+  /** Pour une catégorie principale : ses objets et ceux de ses sous-catégories */
+  items_count: number
+  children?: Category[]
+}
 export type Item = {
   id: number
   emoji: string | null
