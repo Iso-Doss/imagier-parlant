@@ -76,6 +76,10 @@ on choisit d'abord les catégories, puis « Suivant » ouvre les réglages de la
 revenir aux catégories à tout moment (pastille ① ou « Changer de catégories »). L'étape ②
 n'est accessible qu'avec au moins une catégorie choisie.
 
+Une catégorie peut contenir des sous-catégories (« Animaux » : la ferme, la mer, les petites bêtes,
+les oiseaux, la forêt). Toucher la carte prend tout ; le bouton « ▾ 5 sous-catégories » ouvre une
+fenêtre pour n'en garder que certaines, et la carte est alors à moitié cochée (−).
+
 Sur tablette en paysage (900 px et plus), pas d'étapes : les catégories à gauche, les réglages
 de la série à droite, et le bouton « Commencer » en bas. Au toucher de ce bouton, il grandit
 jusqu'à remplir l'écran avec les émojis des catégories choisies, puis laisse place à la

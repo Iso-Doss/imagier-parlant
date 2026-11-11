@@ -20,7 +20,10 @@ class CategoryResource extends JsonResource
             'image_url' => $this->imageUrl(),
             'card_url' => $this->imageUrl('card'),
             'thumb_url' => $this->imageUrl('thumb'),
-            'items_count' => $this->whenCounted('items'),
+            // Pour une catégorie principale : ses objets et ceux de ses sous-catégories
+            'items_count' => $this->whenCounted('items', fn () => $this->items_count
+                + ($this->relationLoaded('children') ? (int) $this->children->sum('items_count') : 0)),
+            'children' => CategoryResource::collection($this->whenLoaded('children')),
             'items' => ItemResource::collection($this->whenLoaded('items')),
         ];
     }

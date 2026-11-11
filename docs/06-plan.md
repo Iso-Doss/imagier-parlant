@@ -111,7 +111,8 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
 - [x] Fin de série festive : étoiles qui tombent, score qui compte, étoile qui danse
 - [x] Écran de bienvenue au premier lancement (3 écrans joués : question, compte à rebours et réponse, micro),
   puis « Jouer tout de suite » ou « Créer un compte » (portail parental)
-- [ ] Sous-catégories à l'accueil
+- [x] Sous-catégories à l'accueil : bouton « ▾ 5 sous-catégories » sur la carte, fenêtre pour en choisir
+  une partie, carte à moitié cochée (−) ; une catégorie principale choisie joue tout
 - [x] Mise en page tablette en paysage pour la partie (image à gauche, réponse à droite)
 - [x] Mise en page tablette : accueil en deux colonnes en paysage (catégories | série, sans étapes),
   espace parent en deux colonnes dès 900 px (compte | micro et hors connexion)
@@ -193,7 +194,9 @@ manquant, jouables en ligne et hors connexion.
 
 Code (2 premières semaines) :
 
-- [ ] Sous-catégories (`parent_id`), arbre déplaçable dans l'admin
+- [x] Sous-catégories (`parent_id`, deux niveaux au plus) : arbre dans l'admin (« Ranger dans », flèches
+  entre voisines, « + Sous-catégorie »), packs hors connexion par catégorie principale
+- [ ] Prototype web : il garde une liste à plat des 29 catégories
 - [ ] Colonnes `reference`, `status`, `difficulty`, `age_min`, source et licence d'image
 - [ ] Import CSV + ZIP : envoi direct S3, découpage en lots, aperçu, rapport d'erreurs, réimport par `reference`
 - [ ] Recherche Meilisearch dans l'admin ; actions groupées

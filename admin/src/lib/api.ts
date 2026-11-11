@@ -75,6 +75,9 @@ export type Language = {
 export type CategoryTranslations = Record<string, { name: string }>
 export type Category = {
   id: number
+  /** Catégorie principale qui la contient (null : catégorie principale) */
+  parent_id: number | null
+  children_count: number
   slug: string
   emoji: string | null
   color: string | null

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import Animated, { useReducedMotion, useSharedValue, withSequence, withSpring, withTiming, useAnimatedStyle } from "react-native-reanimated"
-import { ActivityIndicator, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View, type ViewInstance, useWindowDimensions } from "react-native"
+import { ActivityIndicator, Modal, Pressable, ScrollView, type ScrollViewInstance, StyleSheet, Text, View, type ViewInstance, useWindowDimensions } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { AVATARS, useAccount } from "../account"
 import { NetworkError, fetchCategories, fetchLanguages, type Category, type Language } from "../api"
-import { categoriesFromPacks, languagesFromPacks } from "../lib/packs"
+import { categoriesFromPacks, languagesFromPacks, packSlugs } from "../lib/packs"
+import { allSlugs, cardState, chosenCategories, toggleChild, toggleRoot, type CardState } from "../lib/selection"
 import { useOffline } from "../offline"
 import { BigButton, Chip, Picture, Toggle } from "../components/ui"
 import type { Rect } from "../components/LaunchOverlay"
@@ -79,7 +80,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
       setCategories(cats)
       setOfflineOnly(false)
       // Forget categories that no longer exist
-      const known = new Set(cats.map((c) => c.slug))
+      const known = allSlugs(cats)
       if (settings.categories.some((c) => !known.has(c))) update({ categories: settings.categories.filter((c) => known.has(c)) })
     } catch (e) {
       const { packs, files } = offline
@@ -88,7 +89,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
         setCategories(categoriesFromPacks(packs, settings.lang, files))
         setOfflineOnly(true)
         // Seules les catégories téléchargées restent choisies
-        const have = new Set(packs.map((p) => p.slug))
+        const have = packSlugs(packs)
         if (settings.categories.some((c) => !have.has(c))) update({ categories: settings.categories.filter((c) => have.has(c)) })
       } else {
         setError((e as Error).message)
@@ -103,8 +104,9 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const contentWidth = wide ? (Math.min(width, 1200) - 32 - 24) * (1.45 / 2.45) : Math.min(width, 760) - 32
   const columns = contentWidth > 640 ? 4 : contentWidth > 440 ? 3 : 2
   const cardWidth = (contentWidth - gap * (columns - 1)) / columns
-  const selected = new Set(settings.categories)
-  const allSelected = !!categories && categories.length > 0 && categories.every((c) => selected.has(c.slug))
+  const allSelected = !!categories && categories.length > 0 && categories.every((c) => settings.categories.includes(c.slug))
+  // Catégorie dont on choisit les sous-catégories (fenêtre ouverte)
+  const [picking, setPicking] = useState<Category | null>(null)
 
   // En-tête : langue et thème
   const langs = languages.length ? languages.map((l) => l.code) : ["fr", "en"]
@@ -114,8 +116,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
   const themeName = settings.theme === "light" ? s.themeLight : settings.theme === "dark" ? s.themeDark : s.themeSystem
   const nextTheme = () => update({ theme: themes[(themes.indexOf(settings.theme) + 1) % themes.length] })
 
-  const toggleCat = (slug: string) =>
-    update({ categories: selected.has(slug) ? settings.categories.filter((c) => c !== slug) : [...settings.categories, slug] })
+  const toggleCat = (root: Category) => update({ categories: toggleRoot(settings.categories, root) })
 
   const catsPart = (
         <>
@@ -170,8 +171,10 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
         ) : (
           <View style={[styles.grid, { gap }]}>
             {categories.map((c, i) => {
-              const on = selected.has(c.slug)
-              return <CategoryCard key={c.slug} category={c} index={i} on={on} width={cardWidth} label={s.objects(c.items_count)} saved={!!offline.installed[c.slug]} savedLabel={s.savedOffline} onPress={() => toggleCat(c.slug)} />
+              const state = cardState(settings.categories, c)
+              return <CategoryCard key={c.slug} category={c} index={i} state={state} width={cardWidth} label={s.objects(c.items_count)} saved={!!offline.installed[c.slug]}
+                savedLabel={s.savedOffline} partialLabel={s.subPartial} subLabel={c.children?.length ? s.subCount(c.children.length) : null} subA11y={s.subChoose(c.name ?? "")}
+                onPress={() => toggleCat(c)} onOpen={() => setPicking(c)} />
             })}
           </View>
         )}
@@ -190,7 +193,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
         </View>
         {categories && !wide && (
           <View style={styles.chips}>
-            {categories.filter((c) => selected.has(c.slug)).map((c) => (
+            {chosenCategories(settings.categories, categories).map((c) => (
               <View key={c.slug} style={[styles.who, { borderColor: t.edge, backgroundColor: t.paper }]}>
                 <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={22} />
                 <Text style={[styles.label, { color: t.ink }]}>{c.name}</Text>
@@ -284,6 +287,11 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
         )}
       </ScrollView>
 
+      <SubPicker root={picking} selection={settings.categories} onClose={() => setPicking(null)}
+        onToggleAll={(r) => update({ categories: toggleRoot(settings.categories, r) })}
+        onToggle={(r, child) => update({ categories: toggleChild(settings.categories, r, child) })}
+        labels={{ all: s.subAll, done: s.subDone, objects: s.objects, title: s.subChoose }} />
+
       <View style={[styles.startBar, { paddingBottom: insets.bottom + 14, backgroundColor: t.sky }]}>
         {startError && <Text accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ fontFamily: fonts.bodyBold, color: t.coral, textAlign: "center" }}>{startError}</Text>}
         {step === 1 && !wide ? (
@@ -320,17 +328,24 @@ function HeadButton({ label, onPress, children }: { label: string; onPress: () =
 }
 
 /** Carte de catégorie : rebondit (1 → 1,08 → 1) quand on la choisit ou l'enlève. */
-function CategoryCard({ category: c, index: i, on, width, label, saved, savedLabel, onPress }: {
+function CategoryCard({ category: c, index: i, state, width, label, saved, savedLabel, partialLabel, subLabel, subA11y, onPress, onOpen }: {
   category: Category
   index: number
-  on: boolean
+  /** Toute la catégorie, une partie de ses sous-catégories, ou rien */
+  state: CardState
   width: number
   label: string
   /** Téléchargée : jouable sans réseau */
   saved: boolean
   savedLabel: string
+  partialLabel: string
+  /** « 5 sous-catégories » (null s'il n'y en a pas) */
+  subLabel: string | null
+  subA11y: string
   onPress: () => void
+  onOpen: () => void
 }) {
+  const on = state === "on"
   const t = useTheme()
   const reduced = useReducedMotion()
   const scale = useSharedValue(1)
@@ -345,23 +360,71 @@ function CategoryCard({ category: c, index: i, on, width, label, saved, savedLab
       <Pressable
         onPress={onPress}
         accessibilityRole="checkbox"
-        accessibilityState={{ checked: on }}
-        aria-checked={on}
-        accessibilityLabel={`${c.name}, ${label}${saved ? `, ${savedLabel}` : ""}`}
+        accessibilityState={{ checked: state === "partial" ? "mixed" : on }}
+        aria-checked={state === "partial" ? "mixed" : on}
+        accessibilityLabel={`${c.name}, ${label}${state === "partial" ? `, ${partialLabel}` : ""}${saved ? `, ${savedLabel}` : ""}`}
         style={({ pressed }) => [
           styles.cat,
           { width, backgroundColor: tintFor(t, c.color, i), borderColor: t.edge },
           pressed ? { transform: [{ translateX: 2 }, { translateY: 2 }], ...hardShadow(t.drop, 2) } : hardShadow(t.drop, 4),
         ]}
       >
-        <View style={[styles.check, { borderColor: t.edge, backgroundColor: on ? t.leaf : t.paper }]}>
-          {on && <Text allowFontScaling={false} style={{ color: "#fff", fontFamily: fonts.bodyBold, fontSize: 14 }}>✓</Text>}
+        <View style={[styles.check, { borderColor: t.edge, backgroundColor: on ? t.leaf : state === "partial" ? t.sun : t.paper }]}>
+          {state !== "off" && <Text allowFontScaling={false} style={{ color: on ? "#fff" : t.sunInk, fontFamily: fonts.bodyBold, fontSize: 14 }}>{on ? "✓" : "−"}</Text>}
         </View>
         <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={48} />
         <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.catName, { color: t.ink }]} numberOfLines={2}>{c.name}</Text>
         <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{label}{saved ? "  📥" : ""}</Text>
+        {subLabel && (
+          <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={subA11y} hitSlop={6}
+            style={[styles.subButton, { borderColor: t.edge, backgroundColor: t.paper }]}>
+            <Text maxFontSizeMultiplier={TEXT_SCALE.kid} numberOfLines={1} style={{ fontFamily: fonts.bodyBold, color: t.ink, fontSize: 12 }}>▾ {subLabel}</Text>
+          </Pressable>
+        )}
       </Pressable>
     </Animated.View>
+  )
+}
+
+/** Fenêtre « Choisir dans … » : toute la catégorie, ou seulement certaines sous-catégories. */
+function SubPicker({ root, selection, onToggleAll, onToggle, onClose, labels }: {
+  root: Category | null
+  selection: string[]
+  onToggleAll: (root: Category) => void
+  onToggle: (root: Category, child: string) => void
+  onClose: () => void
+  labels: { all: (n: string) => string; done: string; objects: (n: number) => string; title: (n: string) => string }
+}) {
+  const t = useTheme()
+  if (!root) return null
+  const whole = selection.includes(root.slug)
+  const rows = [{ c: root, checked: whole, press: () => onToggleAll(root), text: labels.all(root.name ?? "") },
+    ...(root.children ?? []).map((c) => ({ c, checked: whole || selection.includes(c.slug), press: () => onToggle(root, c.slug), text: c.name ?? c.slug }))]
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel={labels.done}>
+        <Pressable style={[styles.sheet, { backgroundColor: t.paper, borderColor: t.edge }, hardShadow(t.drop, 6)]} onPress={() => {}}>
+          <Text accessibilityRole="header" maxFontSizeMultiplier={TEXT_SCALE.button} style={[styles.h2, { color: t.ink }]}>{labels.title(root.name ?? "")}</Text>
+          <ScrollView style={{ maxHeight: 420 }} contentContainerStyle={{ gap: 8 }}>
+            {rows.map(({ c, checked, press, text }, i) => (
+              <Pressable key={c.slug} onPress={press} accessibilityRole="checkbox" accessibilityState={{ checked }} aria-checked={checked}
+                accessibilityLabel={`${text}, ${labels.objects(c.items_count)}`}
+                style={[styles.subRow, { borderColor: t.edge, backgroundColor: checked ? t.sun : t.sky }, i === 0 && { marginBottom: 6 }]}>
+                <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={32} />
+                <View style={{ flex: 1 }}>
+                  <Text maxFontSizeMultiplier={TEXT_SCALE.button} style={[styles.label, { color: checked ? t.sunInk : t.ink }]}>{text}</Text>
+                  <Text maxFontSizeMultiplier={TEXT_SCALE.button} style={{ fontFamily: fonts.body, fontSize: 13, color: checked ? t.sunInk : t.muted }}>{labels.objects(c.items_count)}</Text>
+                </View>
+                <View style={[styles.checkInline, { borderColor: t.edge, backgroundColor: checked ? t.leaf : t.paper }]}>
+                  {checked && <Text allowFontScaling={false} style={{ color: "#fff", fontFamily: fonts.bodyBold, fontSize: 14 }}>✓</Text>}
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <BigButton label={labels.done} onPress={onClose} />
+        </Pressable>
+      </Pressable>
+    </Modal>
   )
 }
 
@@ -399,6 +462,11 @@ const styles = StyleSheet.create({
   check: { position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 13, borderWidth: 2.5, alignItems: "center", justifyContent: "center" },
   catName: { fontFamily: fonts.displayBold, fontSize: 18, lineHeight: 21, marginTop: 4 },
   note: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2.5, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
+  subButton: { alignSelf: "flex-start", maxWidth: "100%", marginTop: 6, borderWidth: 2, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  backdrop: { flex: 1, backgroundColor: "#0B1424AA", alignItems: "center", justifyContent: "center", padding: 20 },
+  sheet: { width: "100%", maxWidth: 440, borderWidth: 3, borderRadius: 24, padding: 18, gap: 14 },
+  subRow: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 2.5, borderRadius: 16, padding: 10 },
+  checkInline: { width: 26, height: 26, borderRadius: 13, borderWidth: 2.5, alignItems: "center", justifyContent: "center" },
   panel: { borderWidth: 3, borderRadius: 20, padding: 16, gap: 16 },
   startBar: { position: "absolute", left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, alignItems: "center", gap: 8 },
 })

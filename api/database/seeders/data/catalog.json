@@ -94,7 +94,7 @@
       {"emoji": "✉️", "fr": "une lettre", "en": "a letter", "fr_aliases": ["une enveloppe"], "en_aliases": ["envelope"]},
       {"emoji": "⏰", "fr": "un réveil", "en": "an alarm clock"}
     ]},
-    {"slug": "cuisine", "emoji": "🍳", "color": "#F6DFF3", "names": {"fr": "La cuisine", "en": "Kitchen"}, "items": [
+    {"slug": "cuisine", "parent": "maison", "emoji": "🍳", "color": "#F6DFF3", "names": {"fr": "La cuisine", "en": "Kitchen"}, "items": [
       {"emoji": "🥄", "fr": "une cuillère", "en": "a spoon"},
       {"emoji": "🔪", "fr": "un couteau", "en": "a knife"},
       {"emoji": "🍴", "fr": "une fourchette et un couteau", "en": "a fork and a knife"},
@@ -180,7 +180,7 @@
       {"emoji": "🗺️", "fr": "une carte", "en": "a map"},
       {"emoji": "📅", "fr": "un calendrier", "en": "a calendar"}
     ]},
-    {"slug": "bain", "emoji": "🛁", "color": "#E1E5FF", "names": {"fr": "Salle de bain", "en": "Bathroom"}, "items": [
+    {"slug": "bain", "parent": "maison", "emoji": "🛁", "color": "#E1E5FF", "names": {"fr": "Salle de bain", "en": "Bathroom"}, "items": [
       {"emoji": "🪥", "fr": "une brosse à dents", "en": "a toothbrush"},
       {"emoji": "🧼", "fr": "du savon", "en": "soap"},
       {"emoji": "🛁", "fr": "une baignoire", "en": "a bathtub"},
@@ -244,7 +244,7 @@
       {"emoji": "🌱", "fr": "une pousse", "en": "a seedling", "fr_aliases": ["une plante"], "en_aliases": ["sprout"]},
       {"emoji": "🏜️", "fr": "un désert", "en": "a desert"}
     ]},
-    {"slug": "ferme", "emoji": "🐓", "color": "#FFE1D9", "names": {"fr": "La ferme", "en": "The farm"}, "items": [
+    {"slug": "ferme", "parent": "animaux", "emoji": "🐓", "color": "#FFE1D9", "names": {"fr": "La ferme", "en": "The farm"}, "items": [
       {"emoji": "🐓", "fr": "un coq", "en": "a rooster", "en_aliases": ["cockerel", "cock"]},
       {"emoji": "🐐", "fr": "une chèvre", "en": "a goat"},
       {"emoji": "🦃", "fr": "un dindon", "en": "a turkey", "fr_aliases": ["une dinde"]},
@@ -259,7 +259,7 @@
       {"emoji": "🌾", "fr": "du blé", "en": "wheat"},
       {"emoji": "🪣", "fr": "un seau", "en": "a bucket", "en_aliases": ["pail"]}
     ]},
-    {"slug": "mer", "emoji": "🐳", "color": "#D5F2E7", "names": {"fr": "La mer", "en": "The sea"}, "items": [
+    {"slug": "mer", "parent": "animaux", "emoji": "🐳", "color": "#D5F2E7", "names": {"fr": "La mer", "en": "The sea"}, "items": [
       {"emoji": "🐳", "fr": "une baleine", "en": "a whale"},
       {"emoji": "🐬", "fr": "un dauphin", "en": "a dolphin"},
       {"emoji": "🦈", "fr": "un requin", "en": "a shark"},
@@ -279,7 +279,7 @@
       {"emoji": "🏖️", "fr": "une plage", "en": "a beach"},
       {"emoji": "⛵", "fr": "un voilier", "en": "a sailing boat", "en_aliases": ["sailboat"]}
     ]},
-    {"slug": "insectes", "emoji": "🐞", "color": "#E1E5FF", "names": {"fr": "Les petites bêtes", "en": "Minibeasts"}, "items": [
+    {"slug": "insectes", "parent": "animaux", "emoji": "🐞", "color": "#E1E5FF", "names": {"fr": "Les petites bêtes", "en": "Minibeasts"}, "items": [
       {"emoji": "🐞", "fr": "une coccinelle", "en": "a ladybird", "en_aliases": ["ladybug"]},
       {"emoji": "🐝", "fr": "une abeille", "en": "a bee"},
       {"emoji": "🐜", "fr": "une fourmi", "en": "an ant"},
@@ -294,7 +294,7 @@
       {"emoji": "🦂", "fr": "un scorpion", "en": "a scorpion"},
       {"emoji": "🪱", "fr": "un ver de terre", "en": "a worm", "fr_aliases": ["un ver"], "en_aliases": ["earthworm"]}
     ]},
-    {"slug": "oiseaux", "emoji": "🐦", "color": "#F6DFF3", "names": {"fr": "Les oiseaux", "en": "Birds"}, "items": [
+    {"slug": "oiseaux", "parent": "animaux", "emoji": "🐦", "color": "#F6DFF3", "names": {"fr": "Les oiseaux", "en": "Birds"}, "items": [
       {"emoji": "🐦", "fr": "un oiseau", "en": "a bird"},
       {"emoji": "🦅", "fr": "un aigle", "en": "an eagle"},
       {"emoji": "🦉", "fr": "un hibou", "en": "an owl", "fr_aliases": ["une chouette"]},
@@ -308,7 +308,7 @@
       {"emoji": "🪶", "fr": "une plume", "en": "a feather"},
       {"emoji": "🪹", "fr": "un nid", "en": "a nest"}
     ]},
-    {"slug": "foret", "emoji": "🦊", "color": "#FFF0C4", "names": {"fr": "La forêt", "en": "The forest"}, "items": [
+    {"slug": "foret", "parent": "animaux", "emoji": "🦊", "color": "#FFF0C4", "names": {"fr": "La forêt", "en": "The forest"}, "items": [
       {"emoji": "🦊", "fr": "un renard", "en": "a fox"},
       {"emoji": "🐻", "fr": "un ours", "en": "a bear"},
       {"emoji": "🐺", "fr": "un loup", "en": "a wolf"},
@@ -390,7 +390,7 @@
       {"emoji": "🎼", "fr": "une partition", "en": "sheet music"},
       {"emoji": "📯", "fr": "un cor", "en": "a horn"}
     ]},
-    {"slug": "meteo", "emoji": "⛅", "color": "#FFF0C4", "names": {"fr": "La météo", "en": "Weather"}, "items": [
+    {"slug": "meteo", "parent": "nature", "emoji": "⛅", "color": "#FFF0C4", "names": {"fr": "La météo", "en": "Weather"}, "items": [
       {"emoji": "🌧️", "fr": "la pluie", "en": "rain"},
       {"emoji": "⛈️", "fr": "un orage", "en": "a storm", "en_aliases": ["thunderstorm"]},
       {"emoji": "⚡", "fr": "un éclair", "en": "lightning", "fr_aliases": ["la foudre"]},
@@ -512,7 +512,7 @@
       {"emoji": "🥧", "fr": "une tarte", "en": "a pie", "en_aliases": ["tart"]},
       {"emoji": "🍮", "fr": "un flan", "en": "a custard", "fr_aliases": ["une crème caramel"], "en_aliases": ["pudding", "flan"]}
     ]},
-    {"slug": "espace", "emoji": "🪐", "color": "#D5F2E7", "names": {"fr": "L'espace", "en": "Space"}, "items": [
+    {"slug": "espace", "parent": "nature", "emoji": "🪐", "color": "#D5F2E7", "names": {"fr": "L'espace", "en": "Space"}, "items": [
       {"emoji": "🪐", "fr": "une planète", "en": "a planet", "fr_aliases": ["saturne"], "en_aliases": ["Saturn"]},
       {"emoji": "🛸", "fr": "une soucoupe volante", "en": "a flying saucer", "fr_aliases": ["un ovni"], "en_aliases": ["UFO", "spaceship"]},
       {"emoji": "🌠", "fr": "une étoile filante", "en": "a shooting star"},

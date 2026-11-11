@@ -107,10 +107,10 @@ Format : JSON, dates ISO 8601 UTC, langue par `?lang=` ou `Accept-Language`, en-
 | Méthode | Route | Rôle | État |
 |---|---|---|---|
 | GET | `/languages` | Langues actives | ✅ |
-| GET | `/categories` | Catégories publiées (racines), `?parent=slug` pour les sous-catégories | ✅ (sans arbre) |
+| GET | `/categories` | Catégories principales publiées, chacune avec `children` (ses sous-catégories publiées) ; `items_count` compte aussi les sous-catégories | ✅ |
 | GET | `/categories/{slug}` | Une catégorie et ses objets | ✅ |
-| GET | `/series` | `categories`, `count` (1-100), `lang`, `translation`, `difficulty`, `profile` (si connecté : favorise les objets à revoir) | ✅ (sans difficulté ni profil) |
-| GET | `/packs` | Liste des packs hors connexion : `slug`, `name`, `emoji`, `version`, `size` (octets), `items_count` | ✅ |
+| GET | `/series` | `categories` (une catégorie principale joue aussi ses sous-catégories ; une sous-catégorie seule est possible), `count` (1-100), `lang`, `translation`, `difficulty`, `profile` (si connecté : favorise les objets à revoir) | ✅ (sans difficulté ni profil) |
+| GET | `/packs` | Liste des packs hors connexion (un par catégorie principale, sous-catégories dedans) : `slug`, `name`, `emoji`, `version`, `size` (octets), `items_count` | ✅ |
 | GET | `/packs/{slug}` | Contenu d'un pack : catégorie (noms par langue), langues, objets avec `texts.{langue}` (nom, phrase, variantes, son) | ✅ |
 
 Chaque objet renvoyé contient : `id`, `image_url` (+ `thumb_url`), `name`, `sentence`,
