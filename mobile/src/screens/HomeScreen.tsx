@@ -173,7 +173,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
             {categories.map((c, i) => {
               const state = cardState(settings.categories, c)
               return <CategoryCard key={c.slug} category={c} index={i} state={state} width={cardWidth} label={s.objects(c.items_count)} saved={!!offline.installed[c.slug]}
-                savedLabel={s.savedOffline} partialLabel={s.subPartial} subLabel={c.children?.length ? s.subCount(c.children.length) : null} subA11y={s.subChoose(c.name ?? "")}
+                savedLabel={s.savedOffline} partialLabel={s.subPartial} subLabel={c.children?.length ? (cardWidth < SHORT_SUB_BELOW ? s.subCountShort : s.subCount)(c.children.length) : null} subA11y={s.subChoose(c.name ?? "")}
                 onPress={() => toggleCat(c)} onOpen={() => setPicking(c)} />
             })}
           </View>
@@ -327,6 +327,12 @@ function HeadButton({ label, onPress, children }: { label: string; onPress: () =
   )
 }
 
+/** En dessous de cette largeur de carte, « ▾ 5 sous-catégories » ne tient pas : libellé court */
+const SHORT_SUB_BELOW = 160
+
+/** Hauteur d'une ligne du nom d'une catégorie (styles.catName) */
+const NAME_LINE = 21
+
 /** Carte de catégorie : rebondit (1 → 1,08 → 1) quand on la choisit ou l'enlève. */
 function CategoryCard({ category: c, index: i, state, width, label, saved, savedLabel, partialLabel, subLabel, subA11y, onPress, onOpen }: {
   category: Category
@@ -347,6 +353,8 @@ function CategoryCard({ category: c, index: i, state, width, label, saved, saved
 }) {
   const on = state === "on"
   const t = useTheme()
+  const { fontScale } = useWindowDimensions()
+  const textScale = Math.min(fontScale, TEXT_SCALE.kid)
   const reduced = useReducedMotion()
   const scale = useSharedValue(1)
   const first = useRef(true)
@@ -373,13 +381,19 @@ function CategoryCard({ category: c, index: i, state, width, label, saved, saved
           {state !== "off" && <Text allowFontScaling={false} style={{ color: on ? "#fff" : t.sunInk, fontFamily: fonts.bodyBold, fontSize: 14 }}>{on ? "✓" : "−"}</Text>}
         </View>
         <Picture image={c.thumb_url ?? c.image_url} emoji={c.emoji} size={48} />
-        <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.catName, { color: t.ink }]} numberOfLines={2}>{c.name}</Text>
-        <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{label}{saved ? "  📥" : ""}</Text>
-        {subLabel && (
+        {/* Toujours deux lignes pour le nom : toutes les cartes ont la même hauteur */}
+        <Text maxFontSizeMultiplier={TEXT_SCALE.kid} style={[styles.catName, { color: t.ink, minHeight: 2 * NAME_LINE * textScale }]} numberOfLines={2}>{c.name}</Text>
+        <Text maxFontSizeMultiplier={TEXT_SCALE.kid} numberOfLines={1} style={{ fontFamily: fonts.bodyBold, color: t.muted, fontSize: 13 }}>{label}{saved ? "  📥" : ""}</Text>
+        {subLabel ? (
           <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={subA11y} hitSlop={6}
             style={[styles.subButton, { borderColor: t.edge, backgroundColor: t.paper }]}>
             <Text maxFontSizeMultiplier={TEXT_SCALE.kid} numberOfLines={1} style={{ fontFamily: fonts.bodyBold, color: t.ink, fontSize: 12 }}>▾ {subLabel}</Text>
           </Pressable>
+        ) : (
+          // Place du bouton gardée, invisible, pour la même hauteur
+          <View style={[styles.subButton, { opacity: 0, borderColor: "transparent" }]} pointerEvents="none" aria-hidden accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Text maxFontSizeMultiplier={TEXT_SCALE.kid} numberOfLines={1} style={{ fontFamily: fonts.bodyBold, fontSize: 12 }}>▾</Text>
+          </View>
         )}
       </Pressable>
     </Animated.View>
@@ -458,11 +472,11 @@ const styles = StyleSheet.create({
   sectionHead: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   grid: { flexDirection: "row", flexWrap: "wrap" },
-  cat: { borderWidth: 3, borderRadius: 18, padding: 12, gap: 2, minHeight: 130 },
+  cat: { borderWidth: 3, borderRadius: 18, paddingVertical: 12, paddingHorizontal: 10, gap: 2, minHeight: 130 },
   check: { position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 13, borderWidth: 2.5, alignItems: "center", justifyContent: "center" },
-  catName: { fontFamily: fonts.displayBold, fontSize: 18, lineHeight: 21, marginTop: 4 },
+  catName: { fontFamily: fonts.displayBold, fontSize: 18, lineHeight: NAME_LINE, marginTop: 4 },
   note: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2.5, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
-  subButton: { alignSelf: "flex-start", maxWidth: "100%", marginTop: 6, borderWidth: 2, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  subButton: { alignSelf: "flex-start", maxWidth: "100%", marginTop: 6, borderWidth: 2, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 3 },
   backdrop: { flex: 1, backgroundColor: "#0B1424AA", alignItems: "center", justifyContent: "center", padding: 20 },
   sheet: { width: "100%", maxWidth: 440, borderWidth: 3, borderRadius: 24, padding: 18, gap: 14 },
   subRow: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 2.5, borderRadius: 16, padding: 10 },

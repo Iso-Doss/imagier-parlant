@@ -44,6 +44,8 @@ const fr = {
   voiceNeedsParent: "Un adulte doit d'abord autoriser le micro (cadenas en haut).",
   offlineOnly: "Pas de réseau : voici les catégories téléchargées.",
   subCount: (n: number) => `${n} sous-catégorie${n > 1 ? "s" : ""}`,
+  /** Sur une carte étroite */
+  subCountShort: (n: number) => `Choisir (${n})`,
   subChoose: (name: string) => `Choisir dans « ${name} »`,
   subAll: (name: string) => `Tout : ${name}`,
   subPartial: "en partie",
@@ -120,6 +122,7 @@ const en: typeof fr = {
   voiceNeedsParent: "A grown-up must allow the microphone first (padlock at the top).",
   offlineOnly: "No connection: here are the downloaded categories.",
   subCount: (n) => `${n} sub-categor${n > 1 ? "ies" : "y"}`,
+  subCountShort: (n) => `Choose (${n})`,
   subChoose: (name) => `Choose in “${name}”`,
   subAll: (name) => `All: ${name}`,
   subPartial: "partly",
