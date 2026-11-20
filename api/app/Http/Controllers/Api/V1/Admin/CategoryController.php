@@ -13,8 +13,12 @@ class CategoryController extends Controller
 {
     public function index()
     {
-        $categories = Category::with('translations')->withCount('items')
+        // Les principales dans l'ordre, chacune suivie de ses sous-catégories
+        $all = Category::with('translations')->withCount(['items', 'children'])
             ->orderBy('sort_order')->orderBy('id')->get();
+        $categories = $all->whereNull('parent_id')
+            ->flatMap(fn (Category $root) => [$root, ...$all->where('parent_id', $root->id)])
+            ->values();
 
         return AdminCategoryResource::collection($categories);
     }
@@ -23,32 +27,37 @@ class CategoryController extends Controller
     {
         $category = DB::transaction(function () use ($request) {
             $data = $request->safe()->except('translations');
-            $data['sort_order'] ??= (int) Category::max('sort_order') + 1;
+            $data['sort_order'] ??= (int) Category::where('parent_id', $data['parent_id'] ?? null)->max('sort_order') + 1;
             $category = Category::create($data);
             $category->syncTranslations($request->validated('translations'));
 
             return $category;
         });
 
-        return (new AdminCategoryResource($category->load('translations')->loadCount('items')))
+        return (new AdminCategoryResource($category->load('translations')->loadCount(['items', 'children'])))
             ->response()->setStatusCode(201);
     }
 
     public function show(Category $category)
     {
-        return new AdminCategoryResource($category->load('translations')->loadCount('items'));
+        return new AdminCategoryResource($category->load('translations')->loadCount(['items', 'children']));
     }
 
     public function update(CategoryRequest $request, Category $category)
     {
         DB::transaction(function () use ($request, $category) {
-            $category->update($request->safe()->except('translations'));
+            $data = $request->safe()->except('translations');
+            // Changée de parent : elle passe à la fin de ses nouvelles voisines
+            if (array_key_exists('parent_id', $data) && $data['parent_id'] !== $category->parent_id && ! isset($data['sort_order'])) {
+                $data['sort_order'] = (int) Category::where('parent_id', $data['parent_id'])->max('sort_order') + 1;
+            }
+            $category->update($data);
             if ($request->has('translations')) {
                 $category->syncTranslations($request->validated('translations'));
             }
         });
 
-        return new AdminCategoryResource($category->load('translations')->loadCount('items'));
+        return new AdminCategoryResource($category->load('translations')->loadCount(['items', 'children']));
     }
 
     public function destroy(Category $category)
@@ -58,7 +67,7 @@ class CategoryController extends Controller
         return response()->noContent();
     }
 
-    /** Body: { "ids": [3, 1, 2] } — the new display order. */
+    /** Body: { "ids": [3, 1, 2] } — the new display order (of sibling categories). */
     public function reorder(Request $request)
     {
         $ids = $request->validate(['ids' => ['required', 'array'], 'ids.*' => ['integer', 'exists:categories,id']])['ids'];

@@ -8,10 +8,12 @@ use App\Models\Category;
 
 class CategoryController extends Controller
 {
+    /** Les catégories principales publiées, chacune avec ses sous-catégories publiées. */
     public function index()
     {
-        $categories = Category::published()
-            ->with('translations')
+        $categories = Category::published()->roots()
+            ->with(['translations', 'children' => fn ($q) => $q->where('is_published', true)
+                ->with('translations')->withCount(['items' => fn ($q) => $q->published()])])
             ->withCount(['items' => fn ($q) => $q->published()])
             ->get();
 

@@ -106,7 +106,7 @@ export function ItemSheet({ item, defaultCategoryId, open, onOpenChange }: {
               <Select value={form.category_id} onValueChange={(v) => setForm({ ...form, category_id: v })}>
                 <SelectTrigger className="w-full" aria-invalid={!!error?.field("category_id")}><SelectValue placeholder="Choisir…" /></SelectTrigger>
                 <SelectContent>
-                  {categories.map((c) => <SelectItem key={c.id} value={String(c.id)}>{c.emoji} {displayName(c.translations, languages)}</SelectItem>)}
+                  {categories.map((c) => <SelectItem key={c.id} value={String(c.id)} className={c.parent_id ? "pl-6" : ""}>{c.parent_id ? "↳ " : ""}{c.emoji} {displayName(c.translations, languages)}</SelectItem>)}
                 </SelectContent>
               </Select>
               {error?.field("category_id") && <p className="text-xs font-semibold text-destructive">Choisissez une catégorie.</p>}

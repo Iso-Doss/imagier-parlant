@@ -9,9 +9,10 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['slug', 'emoji', 'color', 'image_path', 'image_variants', 'sort_order', 'is_published'])]
+#[Fillable(['parent_id', 'slug', 'emoji', 'color', 'image_path', 'image_variants', 'sort_order', 'is_published'])]
 class Category extends Model
 {
     /** @use HasTranslations<CategoryTranslation> */
@@ -21,6 +22,7 @@ class Category extends Model
     {
         // Delete items one by one so each removes its own files.
         static::deleting(function (Category $category) {
+            $category->children()->get()->each->delete();
             $category->items()->get()->each->delete();
             app(MediaStore::class)->delete($category->imageFiles());
         });
@@ -35,6 +37,44 @@ class Category extends Model
     public function translations(): HasMany
     {
         return $this->hasMany(CategoryTranslation::class);
+    }
+
+    /** @return BelongsTo<Category, $this> */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    /**
+     * Sous-catégories, dans l'ordre d'affichage.
+     *
+     * @return HasMany<Category, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(Category::class, 'parent_id')->orderBy('sort_order')->orderBy('id');
+    }
+
+    /** @param  Builder<Category>  $query */
+    public function scopeRoots(Builder $query): void
+    {
+        $query->whereNull('parent_id');
+    }
+
+    /**
+     * Les catégories jouées quand on choisit celles-ci : elles-mêmes et leurs sous-catégories publiées.
+     *
+     * @param  list<string>  $slugs
+     * @return list<int>
+     */
+    public static function playableIds(array $slugs): array
+    {
+        $chosen = static::whereIn('slug', $slugs)->where('is_published', true)
+            ->where(fn ($q) => $q->whereNull('parent_id')->orWhereHas('parent', fn ($p) => $p->where('is_published', true)))
+            ->pluck('id');
+
+        return $chosen->merge(static::whereIn('parent_id', $chosen)->where('is_published', true)->pluck('id'))
+            ->unique()->values()->all();
     }
 
     /** @return HasMany<Item, $this> */

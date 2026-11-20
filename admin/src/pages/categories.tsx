@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react"
 import { Link } from "react-router-dom"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { ArrowDown, ArrowUp, Pencil, Plus, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, CornerDownRight, Pencil, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Thumb } from "@/components/brand"
 import { ConfirmDelete } from "@/components/confirm"
@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { displayName, useCategories, useLanguages } from "@/hooks/queries"
 import { api, ApiError, upload, type Category } from "@/lib/api"
@@ -20,23 +21,26 @@ import { slugify } from "@/lib/slug"
 
 const COLORS = ["#FFF0C4", "#FFE1D9", "#D5F2E7", "#E1E5FF", "#F6DFF3", "#E7F1FA"]
 
-type Form = { slug: string; emoji: string; color: string; is_published: boolean; names: Record<string, string> }
+type Form = { parent_id: string; slug: string; emoji: string; color: string; is_published: boolean; names: Record<string, string> }
+const MAIN = "principale"
 
-function CategoryDialog({ category, open, onOpenChange }: { category: Category | null; open: boolean; onOpenChange: (o: boolean) => void }) {
+/** `parentId` : pour créer directement une sous-catégorie. */
+function CategoryDialog({ category, parentId, open, onOpenChange }: { category: Category | null; parentId?: number | null; open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient()
   const { data: languages = [] } = useLanguages()
-  const [form, setForm] = useState<Form>({ slug: "", emoji: "", color: COLORS[0], is_published: true, names: {} })
+  const { data: categories = [] } = useCategories()
+  const [form, setForm] = useState<Form>({ parent_id: MAIN, slug: "", emoji: "", color: COLORS[0], is_published: true, names: {} })
   const [slugTouched, setSlugTouched] = useState(false)
   const [image, setImage] = useState<File | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
   const [lastKey, setLastKey] = useState<string | null>(null)
-  const key = open ? String(category?.id ?? "new") : null
+  const key = open ? String(category?.id ?? `new-${parentId ?? ""}`) : null
   if (key !== lastKey) {
     setLastKey(key)
     setForm(category
-      ? { slug: category.slug, emoji: category.emoji ?? "", color: category.color ?? COLORS[0], is_published: category.is_published,
+      ? { parent_id: category.parent_id ? String(category.parent_id) : MAIN, slug: category.slug, emoji: category.emoji ?? "", color: category.color ?? COLORS[0], is_published: category.is_published,
           names: Object.fromEntries(Object.entries(category.translations).map(([k, v]) => [k, v.name])) }
-      : { slug: "", emoji: "", color: COLORS[0], is_published: true, names: {} })
+      : { parent_id: parentId ? String(parentId) : MAIN, slug: "", emoji: "", color: COLORS[0], is_published: true, names: {} })
     setSlugTouched(!!category)
     setImage(null)
     setError(null)
@@ -48,7 +52,7 @@ function CategoryDialog({ category, open, onOpenChange }: { category: Category |
         languages.map((l) => [l.code, form.names[l.code]?.trim() ? { name: form.names[l.code].trim() } : category?.translations[l.code] ? null : undefined])
           .filter(([, v]) => v !== undefined),
       )
-      const body = { slug: form.slug, emoji: form.emoji || null, color: form.color, is_published: form.is_published, translations }
+      const body = { parent_id: form.parent_id === MAIN ? null : Number(form.parent_id), slug: form.slug, emoji: form.emoji || null, color: form.color, is_published: form.is_published, translations }
       const saved = category
         ? await api<{ data: Category }>(`/admin/categories/${category.id}`, { method: "PATCH", json: body })
         : await api<{ data: Category }>("/admin/categories", { method: "POST", json: body })
@@ -109,6 +113,24 @@ function CategoryDialog({ category, open, onOpenChange }: { category: Category |
           </div>
 
           <div className="grid gap-1.5">
+            <Label htmlFor="cat-parent">Ranger dans</Label>
+            <Select value={form.parent_id} onValueChange={(v) => setForm({ ...form, parent_id: v })} disabled={!!category?.children_count}>
+              <SelectTrigger id="cat-parent" className="w-full" aria-invalid={!!error?.field("parent_id")}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={MAIN}>Aucune : catégorie principale</SelectItem>
+                {categories.filter((c) => !c.parent_id && c.id !== category?.id).map((c) => (
+                  <SelectItem key={c.id} value={String(c.id)}>{c.emoji} {displayName(c.translations, languages)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {error?.field("parent_id") ?? (category?.children_count
+                ? "Elle contient des sous-catégories : elle reste une catégorie principale."
+                : "Une sous-catégorie apparaît dans l'application quand on ouvre sa catégorie principale.")}
+            </p>
+          </div>
+
+          <div className="grid gap-1.5">
             <Label>Couleur de la carte</Label>
             <div className="flex flex-wrap items-center gap-2">
               {COLORS.map((c) => (
@@ -145,7 +167,9 @@ export function CategoriesPage() {
   const { data: categories = [], isLoading } = useCategories()
   const { data: languages = [] } = useLanguages()
   const [editing, setEditing] = useState<Category | null>(null)
+  const [newParent, setNewParent] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
+  const create = (parent: number | null) => { setEditing(null); setNewParent(parent); setOpen(true) }
 
   const refresh = () => { qc.invalidateQueries({ queryKey: ["categories"] }); qc.invalidateQueries({ queryKey: ["stats"] }) }
   const patch = useMutation({
@@ -157,7 +181,13 @@ export function CategoriesPage() {
     mutationFn: (ids: number[]) => api("/admin/categories/reorder", { method: "POST", json: { ids } }),
     onMutate: async (ids) => {
       await qc.cancelQueries({ queryKey: ["categories"] })
-      qc.setQueryData<Category[]>(["categories"], (old) => old && ids.map((id) => old.find((c) => c.id === id)!))
+      // Nouvel ordre des voisines, le reste de la liste ne bouge pas
+      qc.setQueryData<Category[]>(["categories"], (old) => {
+        if (!old) return old
+        const moved = ids.map((id) => old.find((c) => c.id === id)!)
+        let k = 0
+        return old.map((c) => (ids.includes(c.id) ? moved[k++] : c))
+      })
     },
     onSettled: refresh,
   })
@@ -167,9 +197,12 @@ export function CategoriesPage() {
     onError: (e) => toast.error((e as Error).message),
   })
 
-  const swap = (i: number, j: number) => {
-    const ids = categories.map((c) => c.id)
-    ;[ids[i], ids[j]] = [ids[j], ids[i]]
+  // Les flèches déplacent une catégorie parmi ses voisines (même parent)
+  const siblingsOf = (c: Category) => categories.filter((x) => x.parent_id === c.parent_id)
+  const swap = (c: Category, step: -1 | 1) => {
+    const ids = siblingsOf(c).map((x) => x.id)
+    const i = ids.indexOf(c.id)
+    ;[ids[i], ids[i + step]] = [ids[i + step], ids[i]]
     move.mutate(ids)
   }
 
@@ -177,19 +210,23 @@ export function CategoriesPage() {
     <>
       <PageHeader
         title="Catégories"
-        description="L'ordre ici est celui de l'application. Les flèches le changent."
-        actions={<Button onClick={() => { setEditing(null); setOpen(true) }}><Plus /> Nouvelle catégorie</Button>}
+        description="L'ordre ici est celui de l'application. Les flèches le changent. Une sous-catégorie s'ouvre depuis sa catégorie principale."
+        actions={<Button onClick={() => create(null)}><Plus /> Nouvelle catégorie</Button>}
       />
       <Card className="divide-y overflow-hidden py-0">
         {isLoading && <p className="p-4 text-sm text-muted-foreground">Chargement…</p>}
         {!isLoading && !categories.length && <p className="p-6 text-sm text-muted-foreground">Aucune catégorie pour l'instant. Créez la première, par exemple « Fruits ».</p>}
-        {categories.map((c, i) => (
-          <div key={c.id} className="flex flex-wrap items-center gap-4 p-3 sm:flex-nowrap">
+        {categories.map((c) => {
+          const siblings = siblingsOf(c)
+          const i = siblings.indexOf(c)
+          return (
+          <div key={c.id} className={`flex flex-wrap items-center gap-4 p-3 sm:flex-nowrap ${c.parent_id ? "bg-muted/40 pl-8" : ""}`}>
+            {c.parent_id ? <CornerDownRight className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : null}
             <div className="flex flex-col">
-              <Button size="icon" variant="ghost" className="size-7" disabled={i === 0} onClick={() => swap(i, i - 1)} aria-label="Monter"><ArrowUp /></Button>
-              <Button size="icon" variant="ghost" className="size-7" disabled={i === categories.length - 1} onClick={() => swap(i, i + 1)} aria-label="Descendre"><ArrowDown /></Button>
+              <Button size="icon" variant="ghost" className="size-7" disabled={i === 0} onClick={() => swap(c, -1)} aria-label="Monter"><ArrowUp /></Button>
+              <Button size="icon" variant="ghost" className="size-7" disabled={i === siblings.length - 1} onClick={() => swap(c, 1)} aria-label="Descendre"><ArrowDown /></Button>
             </div>
-            <Thumb image={c.thumb_url ?? c.image_url} emoji={c.emoji} color={c.color} className="size-14 text-3xl" />
+            <Thumb image={c.thumb_url ?? c.image_url} emoji={c.emoji} color={c.color} className={c.parent_id ? "size-11 text-2xl" : "size-14 text-3xl"} />
             <div className="min-w-0 flex-1">
               <div className="font-display text-lg font-bold leading-tight">{displayName(c.translations, languages)}</div>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -209,19 +246,25 @@ export function CategoriesPage() {
               {c.is_published ? "Publiée" : "Masquée"}
             </label>
             <div className="flex gap-1">
+              {!c.parent_id && (
+                <Button size="sm" variant="ghost" onClick={() => create(c.id)} aria-label={`Nouvelle sous-catégorie dans ${displayName(c.translations, languages)}`}>
+                  <Plus /> Sous-catégorie
+                </Button>
+              )}
               <Button size="icon" variant="ghost" aria-label="Modifier" onClick={() => { setEditing(c); setOpen(true) }}><Pencil /></Button>
               <ConfirmDelete
                 title={`Supprimer « ${displayName(c.translations, languages)} » ?`}
-                description={<>Ses <b>{c.items_count} objets</b> seront aussi supprimés, avec leurs photos et leurs enregistrements. C'est définitif. Pour la cacher sans rien perdre, désactivez « Publiée ».</>}
+                description={<>{c.children_count ? <>Ses <b>{c.children_count} sous-catégories</b> et leurs objets seront supprimés. </> : null}Ses <b>{c.items_count} objets</b> seront aussi supprimés, avec leurs photos et leurs enregistrements. C'est définitif. Pour la cacher sans rien perdre, désactivez « Publiée ».</>}
                 onConfirm={() => remove.mutate(c)}
               >
                 <Button size="icon" variant="ghost" aria-label="Supprimer"><Trash2 /></Button>
               </ConfirmDelete>
             </div>
           </div>
-        ))}
+          )
+        })}
       </Card>
-      <CategoryDialog category={editing} open={open} onOpenChange={setOpen} />
+      <CategoryDialog category={editing} parentId={newParent} open={open} onOpenChange={setOpen} />
     </>
   )
 }

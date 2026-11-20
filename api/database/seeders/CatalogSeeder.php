@@ -19,10 +19,16 @@ class CatalogSeeder extends Seeder
         $catalog = json_decode((string) file_get_contents(__DIR__.'/data/catalog.json'), true, flags: JSON_THROW_ON_ERROR);
 
         DB::transaction(function () use ($catalog) {
-            foreach ($catalog['categories'] as $position => $entry) {
+            // Les principales d'abord : une sous-catégorie a besoin de son parent
+            $entries = collect($catalog['categories'])->sortBy(fn (array $e) => isset($e['parent']) ? 1 : 0, SORT_REGULAR, false);
+            $siblings = [];
+            foreach ($entries as $entry) {
+                $parent = isset($entry['parent']) ? Category::where('slug', $entry['parent'])->value('id') : null;
+                // Ordre d'affichage : la place dans le fichier, parmi les catégories de même parent
+                $position = $siblings[$parent ?? 0] = ($siblings[$parent ?? 0] ?? -1) + 1;
                 $category = Category::updateOrCreate(
                     ['slug' => $entry['slug']],
-                    ['emoji' => $entry['emoji'], 'color' => $entry['color'], 'sort_order' => $position, 'is_published' => true],
+                    ['parent_id' => $parent, 'emoji' => $entry['emoji'], 'color' => $entry['color'], 'sort_order' => $position, 'is_published' => true],
                 );
                 $category->syncTranslations(collect($entry['names'])->map(fn ($name) => ['name' => $name])->all());
 

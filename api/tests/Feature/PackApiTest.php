@@ -44,6 +44,15 @@ class PackApiTest extends TestCase
             ->assertJsonPath('items.0.texts.en.sentence', "It's an apple");
     }
 
+    public function test_a_main_category_pack_holds_its_sub_categories(): void
+    {
+        $pack = $this->getJson('/api/v1/packs/maison')->assertOk();
+        $this->assertSame(['cuisine', 'bain'], array_column($pack->json('children'), 'slug'));
+        $this->assertCount($this->catalogItems('maison'), $pack->json('items'));
+        $this->assertContains('bain', array_column($pack->json('items'), 'category'));
+        $this->getJson('/api/v1/packs/bain')->assertNotFound();
+    }
+
     public function test_the_version_changes_with_the_content(): void
     {
         $before = $this->getJson('/api/v1/packs/fruits')->json('version');

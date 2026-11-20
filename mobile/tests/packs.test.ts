@@ -109,3 +109,22 @@ test("catégories hors ligne et tailles affichées", () => {
   assert.equal(formatSize(1_234_567, "en"), "1.2 MB");
   assert.equal(formatSize(4_200, "fr"), "4 Ko");
 });
+
+test("sous-catégories : un pack par catégorie principale, une sous-catégorie jouable seule", () => {
+  const house = pack("maison", [1, 2, 3]);
+  house.children = [{ slug: "bain", emoji: "🛁", color: null, image_url: null, thumb_url: null, names: { fr: "Salle de bain", en: "Bathroom" } }];
+  house.items[2].category = "bain";
+  house.items[0].category = "maison";
+  const files = {};
+  assert.equal(coversCategories([house], ["bain"]), true);
+  assert.equal(coversCategories([house], ["cuisine"]), false);
+  const onlyBath = seriesFromPacks([house], { lang: "fr", categories: ["bain"], count: 3 }, files, seeded(2))!;
+  assert.deepEqual(new Set(onlyBath.items.map((i) => i.id)), new Set([3]));
+  assert.equal(onlyBath.items[0].category?.name, "Salle de bain");
+  const all = seriesFromPacks([house], { lang: "fr", categories: ["maison"], count: 6 }, files, seeded(2))!;
+  assert.equal(all.distinct_items, 3);
+  const [root] = categoriesFromPacks([house], "fr", files);
+  assert.equal(root.items_count, 3);
+  assert.deepEqual(root.children?.map((c) => [c.slug, c.items_count]), [["bain", 1]]);
+  assert.equal(packFiles(house).length, 1 + 1 + 3 * 3 - 0 - 0 - 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 0 + 0 - 1 + 1 - 1 + 1 - 1 + 1 - 1 + 1 - 1 + 1 - 1);
+});

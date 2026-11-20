@@ -88,10 +88,33 @@ class PublicApiTest extends TestCase
 
     public function test_series_mixes_several_categories(): void
     {
-        $response = $this->getJson('/api/v1/series?categories[]=fruits&categories[]=animaux&count=20')->assertOk();
+        $response = $this->getJson('/api/v1/series?categories[]=fruits&categories[]=legumes&count=20')->assertOk();
 
         $slugs = collect($response->json('items'))->pluck('category.slug')->unique()->sort()->values()->all();
-        $this->assertSame(['animaux', 'fruits'], $slugs);
+        $this->assertSame(['fruits', 'legumes'], $slugs);
+    }
+
+    public function test_categories_come_with_their_sub_categories(): void
+    {
+        $animals = collect($this->getJson('/api/v1/categories?lang=fr')->json('data'))->firstWhere('slug', 'animaux');
+        $this->assertSame(['ferme', 'mer', 'insectes', 'oiseaux', 'foret'], array_column($animals['children'], 'slug'));
+        $this->assertSame('La ferme', $animals['children'][0]['name']);
+        $this->assertSame($this->catalogItems('animaux'), $animals['items_count']);
+        $this->assertNotContains('ferme', collect($this->getJson('/api/v1/categories')->json('data'))->pluck('slug'));
+    }
+
+    public function test_a_main_category_plays_its_sub_categories_too(): void
+    {
+        $all = $this->getJson('/api/v1/series?categories=animaux&count=100')->assertOk();
+        $this->assertSame($this->catalogItems('animaux'), $all->json('distinct_items'));
+
+        $one = $this->getJson('/api/v1/series?categories=ferme&count=10')->assertOk();
+        $this->assertSame(['ferme'], collect($one->json('items'))->pluck('category.slug')->unique()->values()->all());
+
+        // Parent masqué : ses sous-catégories aussi
+        Category::where('slug', 'animaux')->update(['is_published' => false]);
+        $this->getJson('/api/v1/series?categories=ferme&count=5')->assertJsonPath('count', 0);
+        $this->assertSame(0, collect($this->getJson('/api/v1/series?count=100')->json('items'))->whereIn('category.slug', ['ferme', 'mer'])->count());
     }
 
     public function test_series_can_include_a_second_language(): void

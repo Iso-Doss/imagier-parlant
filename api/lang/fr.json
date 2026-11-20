@@ -256,5 +256,8 @@
     "errors": "les erreurs",
     "of": "de",
     "results": "résultats",
-    "to": "à"
+    "to": "à",
+    "A category cannot be inside itself.": "Une catégorie ne peut pas être dans elle-même.",
+    "Choose a main category: sub-categories cannot have their own.": "Choisissez une catégorie principale : une sous-catégorie ne peut pas en avoir d'autres.",
+    "This category has sub-categories, so it must stay a main category.": "Cette catégorie a des sous-catégories : elle doit rester une catégorie principale."
 }

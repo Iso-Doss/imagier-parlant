@@ -26,7 +26,7 @@ class PackBuilder
     /** Résumé de chaque pack (pour la liste de l'espace parent). */
     public function summaries(): Collection
     {
-        return Category::published()->with('translations')->get()
+        return Category::published()->roots()->with('translations')->get()
             ->map(fn (Category $category) => [
                 'slug' => $category->slug,
                 'name' => $category->translation()?->name,
@@ -38,7 +38,8 @@ class PackBuilder
     }
 
     /**
-     * Le pack complet. Gardé en cache tant que rien ne change dans la catégorie.
+     * Le pack complet d'une catégorie principale, avec ses sous-catégories publiées.
+     * Gardé en cache tant que rien ne change dans la catégorie.
      *
      * @return array<string, mixed>
      */
@@ -51,15 +52,27 @@ class PackBuilder
     private function make(Category $category): array
     {
         $languages = Language::active()->get();
-        $category->load(['translations', 'items' => fn ($q) => $q->published()->with('translations')]);
+        $withItems = ['translations', 'items' => fn ($q) => $q->published()->with('translations')];
+        $category->load([...$withItems, 'children' => fn ($q) => $q->where('is_published', true)->with($withItems)]);
 
-        $names = [];
-        foreach ($languages as $language) {
-            $names[$language->code] = $category->translation($language->code)?->name;
+        $names = fn (Category $c) => $languages->mapWithKeys(fn (Language $l) => [$l->code => $c->translation($l->code)?->name])->all();
+        $describe = fn (Category $c) => [
+            'slug' => $c->slug,
+            'emoji' => $c->emoji,
+            'color' => $c->color,
+            'image_url' => $c->imageUrl(),
+            'thumb_url' => $c->imageUrl('thumb'),
+            'names' => $names($c),
+        ];
+
+        $files = [];
+        $all = collect([$category, ...$category->children]);
+        foreach ($all as $c) {
+            $files[] = $c->image_variants['thumb'] ?? $c->image_path;
         }
-
-        $files = [$category->image_variants['thumb'] ?? $category->image_path];
-        $items = $category->items->map(function (Item $item) use ($languages, &$files) {
+        // Chaque objet garde sa sous-catégorie : on peut n'en jouer qu'une sans réseau
+        $items = $all->flatMap(fn (Category $c) => $c->items->map(fn (Item $item) => [$c->slug, $item]))->map(function (array $pair) use ($languages, &$files) {
+            [$slug, $item] = $pair;
             $texts = [];
             foreach ($languages as $language) {
                 $translation = $item->translation($language->code);
@@ -79,6 +92,7 @@ class PackBuilder
 
             return [
                 'id' => $item->id,
+                'category' => $slug,
                 'emoji' => $item->emoji,
                 'image_url' => $item->imageUrl(),
                 'thumb_url' => $item->imageUrl('thumb'),
@@ -88,14 +102,8 @@ class PackBuilder
 
         $content = [
             'slug' => $category->slug,
-            'category' => [
-                'slug' => $category->slug,
-                'emoji' => $category->emoji,
-                'color' => $category->color,
-                'image_url' => $category->imageUrl(),
-                'thumb_url' => $category->imageUrl('thumb'),
-                'names' => $names,
-            ],
+            'category' => $describe($category),
+            'children' => $category->children->map($describe)->values()->all(),
             'languages' => $languages->map(fn (Language $l) => [
                 'code' => $l->code,
                 'name' => $l->name,
@@ -132,10 +140,12 @@ class PackBuilder
     /** Change dès qu'un élément de la catégorie (ou une langue) est modifié. */
     private function stamp(Category $category): string
     {
-        $items = DB::table('items')->where('category_id', $category->id);
+        $ids = DB::table('categories')->where('id', $category->id)->orWhere('parent_id', $category->id);
+        $items = DB::table('items')->whereIn('category_id', (clone $ids)->select('id'));
         $parts = [
-            $category->updated_at?->getTimestamp(),
-            DB::table('category_translations')->where('category_id', $category->id)->max('updated_at'),
+            (clone $ids)->max('updated_at'),
+            (clone $ids)->count(),
+            DB::table('category_translations')->whereIn('category_id', (clone $ids)->select('id'))->max('updated_at'),
             (clone $items)->max('updated_at'),
             (clone $items)->count(),
             DB::table('item_translations')->whereIn('item_id', (clone $items)->select('id'))->max('updated_at'),

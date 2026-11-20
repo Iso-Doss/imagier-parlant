@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ItemResource;
 use App\Http\Resources\LanguageResource;
+use App\Models\Category;
 use App\Models\Item;
 use App\Models\User;
 use App\Services\SeriesBuilder;
@@ -31,13 +32,12 @@ class SeriesController extends Controller
             'profile' => ['sometimes', 'nullable', 'uuid'],
         ]);
 
+        // Choisir une catégorie principale joue aussi ses sous-catégories
         $pool = Item::published()
-            ->whereHas('category', function ($q) use ($data) {
-                $q->where('is_published', true);
-                if (! empty($data['categories'])) {
-                    $q->whereIn('slug', $data['categories']);
-                }
-            })
+            ->when(! empty($data['categories']),
+                fn ($q) => $q->whereIn('category_id', Category::playableIds($data['categories'])),
+                fn ($q) => $q->whereHas('category', fn ($c) => $c->where('is_published', true)
+                    ->where(fn ($c) => $c->whereNull('parent_id')->orWhereHas('parent', fn ($p) => $p->where('is_published', true)))))
             ->with(['translations', 'category.translations'])
             ->get();
 

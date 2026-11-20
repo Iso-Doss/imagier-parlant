@@ -18,7 +18,8 @@ class PackController extends Controller
     /** GET /api/v1/packs/{slug} : le contenu du pack et l'adresse de chaque fichier. */
     public function show(Category $category, PackBuilder $packs)
     {
-        abort_unless($category->is_published, 404);
+        // Un pack par catégorie principale (ses sous-catégories sont dedans)
+        abort_unless($category->is_published && $category->parent_id === null, 404);
 
         return response()->json($packs->build($category));
     }

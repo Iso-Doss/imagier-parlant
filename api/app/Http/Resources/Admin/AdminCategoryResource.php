@@ -13,6 +13,7 @@ class AdminCategoryResource extends JsonResource
     {
         return [
             'id' => $this->id,
+            'parent_id' => $this->parent_id,
             'slug' => $this->slug,
             'emoji' => $this->emoji,
             'color' => $this->color,
@@ -22,6 +23,7 @@ class AdminCategoryResource extends JsonResource
             'sort_order' => $this->sort_order,
             'is_published' => $this->is_published,
             'items_count' => $this->whenCounted('items'),
+            'children_count' => $this->whenCounted('children'),
             'translations' => $this->translations->mapWithKeys(fn ($t) => [$t->locale => ['name' => $t->name]]),
             'updated_at' => $this->updated_at,
         ];
