@@ -2,6 +2,7 @@
 // - src/lib/answerMatcher.ts entre // <answer-matcher> et // </answer-matcher>
 // - src/lib/voices.ts entre // <voice-picker> et // </voice-picker>
 // - le catalogue de départ (api/database/seeders/data/catalog.json) entre // <catalog> et // </catalog>
+// Et copie le catalogue dans mobile/src/data/catalog.json (version web sans serveur).
 // Lancer : npm run sync:prototype — les tests vérifient ensuite que les copies donnent les mêmes résultats.
 import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
@@ -38,3 +39,7 @@ html = html.replace(/\/\/ <catalog>[\s\S]*?\/\/ <\/catalog>/, () => catalogBlock
 
 writeFileSync(file, html)
 console.log("prototype/index.html mis à jour")
+
+// Catalogue intégré à l'app (version web sans serveur)
+writeFileSync(join(root, "mobile", "src", "data", "catalog.json"), readFileSync(join(root, "api", "database", "seeders", "data", "catalog.json")))
+console.log("mobile/src/data/catalog.json mis à jour")

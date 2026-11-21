@@ -13,6 +13,7 @@ import { formatSize, packState, type PackSummary } from "../lib/packs"
 import { downloadPack, removePack, useOffline } from "../offline"
 import { micPermission, onDeviceSupported, requestMicPermission, type MicPermission } from "../speech"
 import { fonts, hardShadow, useTheme } from "../theme"
+import { STANDALONE } from "../standalone"
 
 /** Espace parent (derrière le portail) : compte, profils enfant, progrès. */
 export function ParentScreen({ lang, settings, update, onClose }: {
@@ -32,10 +33,11 @@ export function ParentScreen({ lang, settings, update, onClose }: {
     <>
       <VoiceCard p={p} settings={settings} update={update} />
       <MicCard p={p} settings={settings} update={update} />
-      <OfflineCard p={p} lang={lang} />
+      {!STANDALONE && <OfflineCard p={p} lang={lang} />}
     </>
   )
-  const accountPart = account ? <Signed p={p} lang={lang} /> : <AuthFlow p={p} lang={lang} />
+  // Version sans serveur : pas de compte (seulement les réglages de l'appareil)
+  const accountPart = STANDALONE ? null : account ? <Signed p={p} lang={lang} /> : <AuthFlow p={p} lang={lang} />
 
   return (
     <View style={{ flex: 1, backgroundColor: t.sky }}>
@@ -44,7 +46,7 @@ export function ParentScreen({ lang, settings, update, onClose }: {
           <SmallButton icon="←" label={p.back} onPress={onClose} />
           <Text accessibilityRole="header" style={[styles.title, { color: t.ink }]}>{p.parentArea}</Text>
         </View>
-        {wide ? (
+        {wide && accountPart ? (
           <View style={styles.columns}>
             <View style={styles.column}>{accountPart}</View>
             <View style={styles.column}>{device}</View>

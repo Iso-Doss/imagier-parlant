@@ -132,6 +132,16 @@ retrouve les progrès sur un second téléphone, puis supprime son compte sans a
 **Terminé quand** : 3 enfants sur 3 lancent une partie seuls, et un parent non prévenu trouve
 l'app « fluide » sans relancer d'écran.
 
+## Première version publique ✅
+
+- [x] Version web sans serveur (`npm run build:web`) : catalogue intégré, pas de compte
+- [x] En ligne sur https://imagier-parlant.netlify.app
+- [x] Vidéo de démonstration (format vertical, pour YouTube Shorts)
+- [ ] YouTube Playables : écarté pour l'instant (les jeux « pour enfants » y sont refusés,
+  accès sur invitation)
+- [ ] Mise en ligne automatique depuis GitHub (aujourd'hui : envoi à la main de `mobile/dist`)
+- [ ] Enlever le badge « Powered by Netlify » si l'offre le permet
+
 ## Phase 4 bis — Plus de contenu et une meilleure voix (2 semaines)
 
 Deux chantiers demandés après la phase 4, avant le grand catalogue de la phase 5.

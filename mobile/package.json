@@ -41,7 +41,8 @@
     "web": "expo start --web",
     "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tests",
-    "sync:prototype": "tsx scripts/sync-prototype-matcher.ts"
+    "sync:prototype": "tsx scripts/sync-prototype-matcher.ts",
+    "build:web": "EXPO_PUBLIC_STANDALONE=1 expo export --platform web"
   },
   "private": true
 }
