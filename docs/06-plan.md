@@ -139,6 +139,9 @@ l'app « fluide » sans relancer d'écran.
 - [x] Vidéo de démonstration (format vertical, pour YouTube Shorts)
 - [ ] YouTube Playables : écarté pour l'instant (les jeux « pour enfants » y sont refusés,
   accès sur invitation)
+- [x] Icône de l'app et favicon (le « ? » du logo), app installable sur l'écran d'accueil (PWA),
+  utilisable sans réseau ; carte « Installer l'app » dans l'espace parent
+- [ ] Essayer l'installation sur un vrai iPhone et un vrai téléphone Android
 - [ ] Mise en ligne automatique depuis GitHub (aujourd'hui : envoi à la main de `mobile/dist`)
 - [ ] Enlever le badge « Powered by Netlify » si l'offre le permet
 

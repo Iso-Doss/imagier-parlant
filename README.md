@@ -143,6 +143,11 @@ l'espace parent ; la voix et le micro viennent du navigateur (le micro passe par
 du navigateur, comme l'indique l'espace parent). Pour mettre en ligne, envoyer le contenu de
 `mobile/dist` sur le site Netlify `imagier-parlant`.
 
+L'app web s'installe sur l'écran d'accueil (PWA) et marche ensuite sans réseau. Les fichiers sont
+dans `mobile/public` : page (`index.html`, balises iPhone), manifeste, service worker (`sw.js`),
+icônes, en-têtes et redirections Netlify (`_headers`, `_redirects`). L'espace parent explique
+comment l'installer (bouton sur Android et ordinateur, Partager › « Sur l'écran d'accueil » sur iPhone).
+
 ## Routes (préfixe `/api/v1`)
 
 ### Application mobile — publiques, lecture seule

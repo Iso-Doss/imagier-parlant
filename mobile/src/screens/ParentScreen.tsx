@@ -14,6 +14,7 @@ import { downloadPack, removePack, useOffline } from "../offline"
 import { micPermission, onDeviceSupported, requestMicPermission, type MicPermission } from "../speech"
 import { fonts, hardShadow, useTheme } from "../theme"
 import { STANDALONE } from "../standalone"
+import { useInstall } from "../pwa"
 
 /** Espace parent (derrière le portail) : compte, profils enfant, progrès. */
 export function ParentScreen({ lang, settings, update, onClose }: {
@@ -31,6 +32,7 @@ export function ParentScreen({ lang, settings, update, onClose }: {
   const wide = width >= 900
   const device = (
     <>
+      <InstallCard p={p} />
       <VoiceCard p={p} settings={settings} update={update} />
       <MicCard p={p} settings={settings} update={update} />
       {!STANDALONE && <OfflineCard p={p} lang={lang} />}
@@ -64,6 +66,28 @@ export function ParentScreen({ lang, settings, update, onClose }: {
 }
 
 // ---------------------------------------------------------------- Micro
+
+/** Version web : ajouter l'app à l'écran d'accueil (rien sur téléphone, où c'est déjà une app). */
+function InstallCard({ p }: { p: ParentStrings }) {
+  const t = useTheme()
+  const { state, install } = useInstall()
+  if (!state) return null
+  return (
+    <Card>
+      <Text accessibilityRole="header" style={[styles.h2, { color: t.ink }]}>📲 {p.install}</Text>
+      {state === "installed" ? (
+        <Text style={[styles.small, { color: t.leaf }]}>✓ {p.installed}</Text>
+      ) : (
+        <>
+          <Text style={[styles.text, { color: t.muted }]}>{p.installText}</Text>
+          {state === "prompt" && <BigButton label={p.installButton} onPress={install} />}
+          {state === "ios" && <Text style={[styles.small, { color: t.ink }]}>{p.installIos}</Text>}
+          {state === "manual" && <Text style={[styles.small, { color: t.ink }]}>{p.installManual}</Text>}
+        </>
+      )}
+    </Card>
+  )
+}
 
 /** Le parent autorise le micro ici, après l'explication (jamais pendant le jeu). */
 function MicCard({ p, settings, update }: { p: ParentStrings; settings: Settings; update: (patch: Partial<Settings>) => void }) {

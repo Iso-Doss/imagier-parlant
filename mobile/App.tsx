@@ -23,6 +23,10 @@ import { PlayScreen } from "./src/screens/PlayScreen"
 import { WelcomeScreen } from "./src/screens/WelcomeScreen"
 import { useSettings } from "./src/settings"
 import { ThemePrefProvider, useTheme } from "./src/theme"
+import { setupPwa } from "./src/pwa"
+
+// Version web publique : hors connexion et installable
+setupPwa()
 
 type Screen = "home" | "play" | "done" | "parent"
 const WELCOME_KEY = "imagier-welcome-v1"
