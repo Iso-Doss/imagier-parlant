@@ -13,6 +13,7 @@ import { strings } from "../i18n"
 import { micPermission } from "../speech"
 import type { AnswerMode, CountStyle, Settings } from "../settings"
 import { TEXT_SCALE, fonts, hardShadow, tintFor, useTheme } from "../theme"
+import { STANDALONE } from "../standalone"
 
 type Props = {
   settings: Settings
@@ -150,7 +151,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
           )}
         </View>
 
-        {offlineOnly && (
+        {offlineOnly && !STANDALONE && (
           <View style={[styles.note, { backgroundColor: t.paper, borderColor: t.edge }]}>
             <Text style={{ fontSize: 18 }} accessible={false} aria-hidden>📴</Text>
             <Text style={{ fontFamily: fonts.bodyBold, color: t.ink, flexShrink: 1 }}>{s.offlineOnly}</Text>
@@ -249,7 +250,7 @@ export function HomeScreen({ settings, update, onStart, starting, startError, on
               <Text allowFontScaling={false} style={{ fontSize: 19 }}>{settings.theme === "light" ? "☀️" : settings.theme === "dark" ? "🌙" : "🌓"}</Text>
             </HeadButton>
             {/* Compte : connexion ou création, derrière le portail parental */}
-            <HeadButton label={acc.account ? s.accountSigned(acc.account.email) : s.account} onPress={onParent}>
+            <HeadButton label={STANDALONE ? s.parentOnly : acc.account ? s.accountSigned(acc.account.email) : s.account} onPress={onParent}>
               <Text allowFontScaling={false} style={{ fontSize: 19 }}>{acc.activeProfile ? AVATARS[acc.activeProfile.avatar] ?? "👤" : "👤"}</Text>
               <View style={[styles.lockBadge, { backgroundColor: acc.account ? t.leaf : t.sun, borderColor: t.edge }]}>
                 <Text allowFontScaling={false} style={{ fontSize: 9 }}>{acc.account ? "✓" : "🔒"}</Text>

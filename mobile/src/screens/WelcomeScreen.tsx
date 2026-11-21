@@ -8,6 +8,7 @@ import { Wiggle } from "../components/motion"
 import { BigButton, SmallButton } from "../components/ui"
 import { strings } from "../i18n"
 import { TEXT_SCALE, fonts, hardShadow, useTheme } from "../theme"
+import { STANDALONE } from "../standalone"
 
 /** Bienvenue (premier lancement) : trois écrans qui montrent le jeu en le jouant. */
 export function WelcomeScreen({ lang, onDone }: { lang: string; onDone: (next: "play" | "account") => void }) {
@@ -49,7 +50,8 @@ export function WelcomeScreen({ lang, onDone }: { lang: string; onDone: (next: "
         {last ? (
           <>
             <BigButton label={s.playNow} onPress={() => onDone("play")} style={{ width: "100%", maxWidth: 420 }} />
-            <SmallButton label={s.createAccount} onPress={() => onDone("account")} />
+            {/* Version sans serveur : pas de compte */}
+            {!STANDALONE && <SmallButton label={s.createAccount} onPress={() => onDone("account")} />}
           </>
         ) : (
           <BigButton label={`${s.nextStep} →`} onPress={() => setStep(step + 1)} style={{ width: "100%", maxWidth: 420 }} />

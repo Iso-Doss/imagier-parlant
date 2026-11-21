@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage"
 import { fetchPack, mediaUrl } from "./api"
 import { fileNameFor, packFiles, type FileMap, type Pack } from "./lib/packs"
 import { packStore } from "./packStore"
+import { STANDALONE, bundledPacks } from "./standalone"
 
 const INDEX_KEY = "imagier-packs-v1"
 const CONCURRENCY = 4
@@ -31,6 +32,8 @@ export const offlineState = () => state
 /** À l'ouverture de l'app : relit les packs installés. */
 let loading: Promise<void> | null = null
 export function loadOffline(): Promise<void> {
+  // Version sans serveur : tout le catalogue est déjà là, rien à télécharger
+  if (STANDALONE) { set({ ready: true, supported: false, packs: bundledPacks() }); return Promise.resolve() }
   if (!packStore.supported) { set({ ready: true }); return Promise.resolve() }
   loading ??= (async () => {
     let installed: Record<string, Installed> = {}

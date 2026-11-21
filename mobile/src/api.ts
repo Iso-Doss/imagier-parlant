@@ -1,6 +1,7 @@
 import Constants from "expo-constants"
 import { Platform } from "react-native"
 import type { Pack, PackSummary } from "./lib/packs"
+import { STANDALONE } from "./standalone"
 
 /**
  * Where the Laravel API lives.
@@ -58,6 +59,8 @@ export class NetworkError extends Error {}
 
 async function get<T>(path: string, params: Record<string, string | number | undefined> = {}, token?: string | null): Promise<T> {
   const qs = Object.entries(params).filter(([, v]) => v !== undefined && v !== "").map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`).join("&")
+  // Version sans serveur : l'app joue avec le catalogue intégré (comme hors connexion)
+  if (STANDALONE) throw new NetworkError("Version sans serveur")
   let res: Response
   try {
     res = await fetch(`${API_URL}/api/v1${path}${qs ? `?${qs}` : ""}`, { headers: { Accept: "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) } })

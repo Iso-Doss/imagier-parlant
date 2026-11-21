@@ -128,6 +128,21 @@ Mode « Un adulte (✓ / ✗) » : pendant le compte à rebours, l'adulte indiqu
 Avec un profil, la série est envoyée au compte (ou gardée sur le téléphone jusqu'au retour du réseau),
 et les objets ratés reviennent dans les séries suivantes.
 
+### Version web publique (sans serveur)
+
+En ligne : **https://imagier-parlant.netlify.app** (Netlify, offre gratuite).
+
+```bash
+cd mobile && npm run build:web     # → mobile/dist
+```
+
+`EXPO_PUBLIC_STANDALONE=1` (dans `build:web`) intègre tout le catalogue à l'app
+(`mobile/src/data/catalog.json`, recopié par `npm run sync:prototype`) et ne demande rien à l'API :
+l'app joue comme avec toutes les catégories téléchargées. Pas de compte ni de téléchargements dans
+l'espace parent ; la voix et le micro viennent du navigateur (le micro passe par le service vocal
+du navigateur, comme l'indique l'espace parent). Pour mettre en ligne, envoyer le contenu de
+`mobile/dist` sur le site Netlify `imagier-parlant`.
+
 ## Routes (préfixe `/api/v1`)
 
 ### Application mobile — publiques, lecture seule
