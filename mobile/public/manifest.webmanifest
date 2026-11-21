@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Imagier parlant",
+  "short_name": "Imagier",
+  "description": "Une image, une question, un mot : l'imagier qui parle, pour apprendre les mots aux tout-petits, en français et en anglais.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#E7F1FA",
+  "theme_color": "#E7F1FA",
+  "categories": ["education", "kids", "games"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
